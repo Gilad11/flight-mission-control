@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>מרכז בקרת טיסות</title>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.2/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: { fontFamily: { sans: ['Heebo','Arial','sans-serif'] } } }
+    };
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family: 'Heebo', 'Arial Hebrew', 'Arial', sans-serif; margin: 0; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    .dark ::-webkit-scrollbar-track { background: #1e293b; }
+    .dark ::-webkit-scrollbar-thumb { background: #475569; }
+    @keyframes slideIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+    @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .toast-anim { animation: slideIn 0.25s ease; }
+    .fade-in { animation: fadeIn 0.3s ease; }
+    .spin { animation: spin 0.8s linear infinite; }
+    select option { direction: rtl; }
+    input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; }
+    table { border-collapse: collapse; }
+  </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 min-h-screen">
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useMemo, useCallback, useRef } = React;
+
+// ━━━━━━━━━━━━━━━━━━━━ CONSTANTS ━━━━━━━━━━━━━━━━━━━━
+const GROUPS = ["טכנולוג׳יקל גרופ","כיפה",'מפע"ם',"איי סטאר","מנהלת מלטים","נספחות"];
+
+const GROUP_COLORS = {
+  "טכנולוג׳יקל גרופ": { bg:"bg-blue-100 dark:bg-blue-900/30", text:"text-blue-700 dark:text-blue-300", border:"border-blue-300 dark:border-blue-700" },
+  "כיפה": { bg:"bg-purple-100 dark:bg-purple-900/30", text:"text-purple-700 dark:text-purple-300", border:"border-purple-300 dark:border-purple-700" },
+  'מפע"ם': { bg:"bg-orange-100 dark:bg-orange-900/30", text:"text-orange-700 dark:text-orange-300", border:"border-orange-300 dark:border-orange-700" },
+  "איי סטאר": { bg:"bg-green-100 dark:bg-green-900/30", text:"text-green-700 dark:text-green-300", border:"border-green-300 dark:border-green-700" },
+  "מנהלת מלטים": { bg:"bg-teal-100 dark:bg-teal-900/30", text:"text-teal-700 dark:text-teal-300", border:"border-teal-300 dark:border-teal-700" },
+  "נספחות": { bg:"bg-rose-100 dark:bg-rose-900/30", text:"text-rose-700 dark:text-rose-300", border:"border-rose-300 dark:border-rose-700" },
+};
+
+const RANKS = ["טוראי","רב-טוראי","סמל","סמל ראשון","רב-סמל","סגן","סרן","רב-סרן","סגן-אלוף","אלוף-משנה","אלוף","רב-אלוף"];
+
+// ━━━━━━━━━━━━━━━━━━━━ DATA LAYER ━━━━━━━━━━━━━━━━━━━━
+const FLIGHTS_KEY = 'fc_flights';
+const TRAVELERS_KEY = 'fc_travelers';
+let gid = 0;
+function genId() { return 'id_' + (++gid) + '_' + Math.random().toString(36).slice(2,8); }
+
+function makeMockData() {
+  const today = new Date();
+  const d1 = new Date(today); d1.setDate(today.getDate()+2);
+  const d2 = new Date(today); d2.setDate(today.getDate()+6);
+  const d3 = new Date(today); d3.setDate(today.getDate()-5);
+  const fmt = d => d.toISOString().split('T')[0];
+
+  const flights = [
+    { id:"fl1", flightNumber:"TK1580", date:fmt(d1), time:"14:30", direction:"outgoing" },
+    { id:"fl2", flightNumber:"LY315",  date:fmt(d2), time:"09:15", direction:"incoming" },
+    { id:"fl3", flightNumber:"W63821", date:fmt(d3), time:"11:00", direction:"outgoing" },
+  ];
+
+  const travelers = [
+    { id:"t01",flightId:"fl1",serial:1,unit:"8200",rank:"סגן",fullName:"ישראל כהן",militaryId:"7123456",nationalId:"012345678",passport:"21234567",phone:"0521234567",group:"טכנולוג׳יקל גרופ",hotel:"דן",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:new Date().toISOString() },
+    { id:"t02",flightId:"fl1",serial:2,unit:"81",rank:"סרן",fullName:"שרה לוי",militaryId:"7234567",nationalId:"023456789",passport:"22345678",phone:"0532345678",group:"טכנולוג׳יקל גרופ",hotel:"דן",transportBooked:false,passportCheck:"החלקה",isArchived:false,createdAt:new Date().toISOString() },
+    { id:"t03",flightId:"fl1",serial:3,unit:'מג\'ן',rank:"רב-סמל",fullName:"דוד אברהם",militaryId:"7345678",nationalId:"034567890",passport:"23456789",phone:"0543456789",group:"כיפה",hotel:"פנינסולה",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:new Date().toISOString() },
+    { id:"t04",flightId:"fl1",serial:4,unit:'אמ"ן',rank:"אלוף-משנה",fullName:"רחל גולן",militaryId:"7456789",nationalId:"045678901",passport:"24567890",phone:"0554567890",group:"כיפה",hotel:"פנינסולה",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:new Date().toISOString() },
+    { id:"t05",flightId:"fl1",serial:5,unit:"חיל האוויר",rank:"סגן",fullName:"מיכאל ברק",militaryId:"7567890",nationalId:"056789012",passport:"25678901",phone:"0565678901",group:'מפע"ם',hotel:"הילטון",transportBooked:false,passportCheck:"החלקה",isArchived:false,createdAt:new Date().toISOString() },
+    { id:"t06",flightId:"fl1",serial:6,unit:'מטכ"ל',rank:"רב-אלוף",fullName:"אורית שמיר",militaryId:"7678901",nationalId:"067890123",passport:"26789012",phone:"0576789012",group:'מפע"ם',hotel:"הילטון",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:new Date().toISOString() },
+    { id:"t07",flightId:"fl1",serial:7,unit:"חיל הים",rank:"סמל",fullName:"יוסי מזרחי",militaryId:"7789012",nationalId:"078901234",passport:"27890123",phone:"0587890123",group:"איי סטאר",hotel:"קינג דייוויד",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:new Date().toISOString() },
+    { id:"t08",flightId:"fl1",serial:8,unit:"פיקוד מרכז",rank:"אלוף",fullName:"נועה כץ",militaryId:"7890123",nationalId:"089012345",passport:"28901234",phone:"0598901234",group:"איי סטאר",hotel:"קינג דייוויד",transportBooked:false,passportCheck:"החלקה",isArchived:false,createdAt:new Date().toISOString() },
+    { id:"t09",flightId:"fl1",serial:9,unit:"8200",rank:"סגן-אלוף",fullName:"אלי פרץ",militaryId:"7901234",nationalId:"090123456",passport:"29012345",phone:"0509012345",group:"מנהלת מלטים",hotel:"שרתון",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:new Date().toISOString() },
+    { id:"t10",flightId:"fl1",serial:10,unit:'מג\'ן',rank:"טוראי",fullName:"תמר ניסים",militaryId:"8012345",nationalId:"001234567",passport:"30123456",phone:"0510123456",group:"נספחות",hotel:"הרודס",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:new Date().toISOString() },
+
+    { id:"t11",flightId:"fl2",serial:1,unit:"81",rank:"רב-סמל",fullName:"בנימין שפירא",militaryId:"8123456",nationalId:"012345679",passport:"31234567",phone:"0521234568",group:"טכנולוג׳יקל גרופ",hotel:"דן",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:new Date().toISOString() },
+    { id:"t12",flightId:"fl2",serial:2,unit:'אמ"ן',rank:"סרן",fullName:"חנה רוזן",militaryId:"8234567",nationalId:"023456780",passport:"32345678",phone:"0532345679",group:"כיפה",hotel:"פנינסולה",transportBooked:false,passportCheck:"החלקה",isArchived:false,createdAt:new Date().toISOString() },
+    { id:"t13",flightId:"fl2",serial:3,unit:"חיל האוויר",rank:"סגן",fullName:"גבי ויס",militaryId:"8345678",nationalId:"034567891",passport:"33456789",phone:"0543456780",group:'מפע"ם',hotel:"הילטון",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:new Date().toISOString() },
+    { id:"t14",flightId:"fl2",serial:4,unit:'מטכ"ל',rank:"אלוף-משנה",fullName:"לילה עמר",militaryId:"8456789",nationalId:"045678902",passport:"34567890",phone:"0554567891",group:"איי סטאר",hotel:"קינג דייוויד",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:new Date().toISOString() },
+    { id:"t15",flightId:"fl2",serial:5,unit:"חיל הים",rank:"רב-אלוף",fullName:"שלמה חדד",militaryId:"8567890",nationalId:"056789013",passport:"35678901",phone:"0565678902",group:"מנהלת מלטים",hotel:"שרתון",transportBooked:false,passportCheck:"החלקה",isArchived:false,createdAt:new Date().toISOString() },
+    { id:"t16",flightId:"fl2",serial:6,unit:"8200",rank:"סמל ראשון",fullName:"ורד גרין",militaryId:"8678901",nationalId:"067890124",passport:"36789012",phone:"0576789013",group:"נספחות",hotel:"הרודס",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:new Date().toISOString() },
+
+    { id:"t17",flightId:"fl3",serial:1,unit:"81",rank:"סגן",fullName:"אמיר דוד",militaryId:"9001234",nationalId:"090012345",passport:"40012345",phone:"0520012345",group:"כיפה",hotel:"פנינסולה",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:new Date().toISOString() },
+    { id:"t18",flightId:"fl3",serial:2,unit:'מג\'ן',rank:"סרן",fullName:"מיה פישר",militaryId:"9012345",nationalId:"090123456",passport:"40123456",phone:"0530123456",group:"איי סטאר",hotel:"הילטון",transportBooked:false,passportCheck:"החלקה",isArchived:false,createdAt:new Date().toISOString() },
+    { id:"t19",flightId:"fl1",serial:11,unit:'אמ"ן',rank:"סמל",fullName:"ניר שלום",militaryId:"9123456",nationalId:"091234567",passport:"41234567",phone:"0541234567",group:"כיפה",hotel:"פנינסולה",transportBooked:false,passportCheck:"V",isArchived:true,createdAt:new Date().toISOString() },
+  ];
+  return { flights, travelers };
+}
+
+function loadFlights() {
+  try { const d = localStorage.getItem(FLIGHTS_KEY); return d ? JSON.parse(d) : null; } catch { return null; }
+}
+function loadTravelers() {
+  try { const d = localStorage.getItem(TRAVELERS_KEY); return d ? JSON.parse(d) : null; } catch { return null; }
+}
+function saveFlights(f) { localStorage.setItem(FLIGHTS_KEY, JSON.stringify(f)); }
+function saveTravelers(t) { localStorage.setItem(TRAVELERS_KEY, JSON.stringify(t)); }
+
+function initData() {
+  let flights = loadFlights();
+  let travelers = loadTravelers();
+  if (!flights || !travelers) {
+    const mock = makeMockData();
+    flights = mock.flights; travelers = mock.travelers;
+    saveFlights(flights); saveTravelers(travelers);
+  }
+  return { flights, travelers };
+}
+
+// ━━━━━━━━━━━━━━━━━━━━ UTILS ━━━━━━━━━━━━━━━━━━━━
+function formatDate(ds) {
+  if (!ds) return '';
+  const [y,m,d] = ds.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+function formatDateHebrew(ds) {
+  if (!ds) return '';
+  const date = new Date(ds+'T00:00:00');
+  const days = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+  const months = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+  return `${days[date.getDay()]}, ${date.getDate()} ב${months[date.getMonth()]} ${date.getFullYear()}`;
+}
+
+function phoneToWA(phone) {
+  if (!phone) return '';
+  const d = phone.replace(/\D/g,'');
+  if (d.startsWith('0')) return '972'+d.slice(1);
+  if (d.startsWith('972')) return d;
+  return '972'+d;
+}
+
+function dirLabel(dir) { return dir==='incoming' ? 'נכנסים' : 'יוצאים'; }
+function dirEmoji(dir) { return dir==='incoming' ? '🛬' : '🛫'; }
+
+function genWhatsAppSummary(flight, travelers) {
+  if (!flight || !travelers.length) return '';
+  const total = travelers.length;
+  const hakhlaka = travelers.filter(t=>t.passportCheck==='החלקה').length;
+  let lines = [];
+  for (const g of GROUPS) {
+    const gt = travelers.filter(t=>t.group===g);
+    if (!gt.length) continue;
+    const poc = gt.sort((a,b)=>a.serial-b.serial)[0];
+    const hotel = poc.hotel || 'לא הוגדר';
+    const rooms = Math.ceil(gt.filter(t=>t.hotel===hotel).length / 2);
+    lines.push(`• ${gt.length} - ${g}; POC ${poc.fullName} - ${hotel} - ${rooms} חדרים`);
+  }
+  return `✈️ *טיסה מס׳ ${flight.flightNumber}*\n📅 תאריך: ${formatDate(flight.date)}\n🕐 שעה: ${flight.time}\n\n${dirEmoji(flight.direction)} *${dirLabel(flight.direction)}: ${total} נוסעים*\n⚠️ החלקה: ${hakhlaka}\n\n📋 *פירוט לפי קבוצות:*\n${lines.join('\n')}`;
+}
+
+function doExportExcel(flight, travelers) {
+  const data = travelers.map(t => ({
+    'מס"ד': t.serial, 'גוף': t.unit, 'דרגה': t.rank, 'שם מלא': t.fullName,
+    'מ.א': t.militaryId, 'ת.ז': t.nationalId, 'דרכון': t.passport, 'טלפון': t.phone,
+    'קבוצה': t.group, 'מלון': t.hotel, 'הסעה הוזמנה': t.transportBooked?'כן':'לא',
+    'בדיקת דרכון': t.passportCheck
+  }));
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'נוסעים');
+  XLSX.writeFile(wb, `טיסה_${flight.flightNumber}_${flight.date}.xlsx`);
+}
+
+function parseSmartPaste(text) {
+  const r = {};
+  const ex = p => { const m = text.match(p); return m ? m[1].trim() : ''; };
+  r.fullName = ex(/שם:\s*(.+)/);
+  r.nationalId = ex(/תז:\s*(\d+)/);
+  r.phone = ex(/טלפון:\s*([\d\-]+)/);
+  r.group = ex(/קבוצה:\s*(.+)/);
+  r.flightDate = ex(/טיסה:\s*([\d\/\-\.]+)/);
+  r.direction = ex(/כיוון:\s*(.+)/);
+  if (r.flightDate) {
+    const dm = r.flightDate.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/);
+    if (dm) { const y = dm[3].length===2?'20'+dm[3]:dm[3]; r.flightDate = `${y}-${dm[2].padStart(2,'0')}-${dm[1].padStart(2,'0')}`; }
+  }
+  if (r.direction) {
+    if (/נכנס|מגיע|incoming/i.test(r.direction)) r.direction='incoming';
+    else if (/יוצ|עוזב|outgoing/i.test(r.direction)) r.direction='outgoing';
+  }
+  return r;
+}
+
+// ━━━━━━━━━━━━━━━━━━━━ TOAST SYSTEM ━━━━━━━━━━━━━━━━━━━━
+let toastList = [];
+let toastListeners = [];
+function showToast(msg, type='success') {
+  const id = Date.now()+Math.random();
+  toastList = [...toastList, { id, msg, type }];
+  toastListeners.forEach(fn=>fn([...toastList]));
+  setTimeout(() => { toastList = toastList.filter(t=>t.id!==id); toastListeners.forEach(fn=>fn([...toastList])); }, 3500);
+}
+
+function ToastContainer() {
+  const [toasts, setToasts] = useState([]);
+  useEffect(() => { toastListeners.push(setToasts); return () => { toastListeners = toastListeners.filter(f=>f!==setToasts); }; }, []);
+  const icons = { success:'bi-check-circle-fill text-green-400', error:'bi-x-circle-fill text-red-400', info:'bi-info-circle-fill text-blue-400' };
+  const bgs = { success:'bg-green-600', error:'bg-red-600', info:'bg-blue-600' };
+  return (
+    <div className="fixed bottom-4 left-4 z-[100] flex flex-col gap-2">
+      {toasts.map(t => (
+        <div key={t.id} className={`toast-anim flex items-center gap-2 px-4 py-3 rounded-xl text-white shadow-xl text-sm max-w-xs ${bgs[t.type]}`}>
+          <i className={`bi ${icons[t.type]}`}></i>
+          <span className="flex-1">{t.msg}</span>
+          <button onClick={() => { toastList=toastList.filter(x=>x.id!==t.id); toastListeners.forEach(fn=>fn([...toastList])); }} className="opacity-70 hover:opacity-100">
+            <i className="bi bi-x-lg text-xs"></i>
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ━━━━━━━━━━━━━━━━━━━━ SMALL COMPONENTS ━━━━━━━━━━━━━━━━━━━━
+
+function PassportSwitch({ value, onChange }) {
+  const isV = value === 'V';
+  return (
+    <button
+      onClick={() => onChange(isV ? 'החלקה' : 'V')}
+      className={`relative inline-flex h-7 w-16 items-center rounded-full transition-all duration-200 focus:outline-none shadow-inner ${isV ? 'bg-green-500' : 'bg-blue-500'}`}
+      title={isV ? 'V - אושר' : 'החלקה'}
+    >
+      <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-200 ${isV ? 'translate-x-1' : 'translate-x-10'}`} />
+      <span className={`absolute text-[10px] font-bold text-white select-none ${isV ? 'right-2' : 'left-1.5'}`}>
+        {isV ? 'V' : 'החלקה'}
+      </span>
+    </button>
+  );
+}
+
+function HotelCell({ value, onChange }) {
+  const [editing, setEditing] = useState(false);
+  const [val, setVal] = useState(value||'');
+  const save = () => { setEditing(false); if (val!==value) onChange(val); };
+  if (editing) return (
+    <input autoFocus value={val} onChange={e=>setVal(e.target.value)} onBlur={save}
+      onKeyDown={e => { if (e.key==='Enter') save(); if (e.key==='Escape') { setVal(value); setEditing(false); }}}
+      className="w-full px-2 py-0.5 text-sm border-2 border-indigo-500 rounded bg-white dark:bg-gray-800 outline-none" />
+  );
+  return (
+    <button onClick={()=>setEditing(true)} className="flex items-center gap-1 text-sm text-right hover:text-indigo-600 dark:hover:text-indigo-400 group w-full">
+      <span>{value || <span className="text-gray-400 italic text-xs">+ מלון</span>}</span>
+      <i className="bi bi-pencil text-[10px] opacity-0 group-hover:opacity-60"></i>
+    </button>
+  );
+}
+
+function GroupDropdown({ value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const c = GROUP_COLORS[value] || {};
+  return (
+    <div className="relative">
+      <button onClick={()=>setOpen(!open)} className={`text-[11px] px-2 py-0.5 rounded-full border font-medium flex items-center gap-1 whitespace-nowrap ${c.bg} ${c.text} ${c.border}`}>
+        {value} <i className="bi bi-chevron-down text-[9px]"></i>
+      </button>
+      {open && <>
+        <div className="fixed inset-0 z-10" onClick={()=>setOpen(false)} />
+        <div className="absolute top-full right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-20 py-1 min-w-max">
+          {GROUPS.map(g => {
+            const gc = GROUP_COLORS[g]||{};
+            return (
+              <button key={g} onClick={()=>{onChange(g);setOpen(false);}} className={`w-full text-right px-3 py-1.5 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 ${g===value?'font-bold':''}`}>
+                <span className={`w-2 h-2 rounded-full border ${gc.bg} ${gc.border}`}></span>
+                {g}
+                {g===value && <i className="bi bi-check-lg text-indigo-500 mr-auto text-xs"></i>}
+              </button>
+            );
+          })}
+        </div>
+      </>}
+    </div>
+  );
+}
+
+// ━━━━━━━━━━━━━━━━━━━━ DASHBOARD ━━━━━━━━━━━━━━━━━━━━
+
+function HotelAnalytics({ travelers }) {
+  const hc = useMemo(() => {
+    const m = {};
+    travelers.forEach(t => { if (t.hotel) m[t.hotel] = (m[t.hotel]||0)+1; });
+    return Object.entries(m).sort((a,b)=>b[1]-a[1]);
+  }, [travelers]);
+  if (!hc.length) return null;
+  return (
+    <div className="flex flex-wrap gap-2 mb-4">
+      {hc.map(([h,c]) => (
+        <div key={h} className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-1.5 shadow-sm text-sm">
+          <i className="bi bi-building text-indigo-500"></i>
+          <span className="font-semibold">{h}</span>
+          <span className="text-indigo-600 dark:text-indigo-400 font-bold bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded-full text-xs">{c}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function FlightFooter({ flight, travelers }) {
+  const total = travelers.length;
+  const hak = travelers.filter(t=>t.passportCheck==='החלקה').length;
+  return (
+    <div className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 px-4 py-3">
+      <div className="flex flex-wrap gap-4 mb-2.5">
+        <span className="text-sm"><span className="text-gray-500 dark:text-gray-400">סה"כ {dirLabel(flight.direction)}: </span><b>{total}</b></span>
+        <span className="text-sm"><span className="text-gray-500 dark:text-gray-400">סה"כ משתתפים: </span><b>{total}</b></span>
+        <span className="text-sm"><span className="text-gray-500 dark:text-gray-400">סה"כ החלקה: </span><b className="text-blue-600 dark:text-blue-400">{hak}</b></span>
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {GROUPS.map(g => {
+          const cnt = travelers.filter(t=>t.group===g).length;
+          if (!cnt) return null;
+          const gc = GROUP_COLORS[g]||{};
+          return <span key={g} className={`text-[11px] px-2.5 py-1 rounded-full border font-medium ${gc.bg} ${gc.text} ${gc.border}`}>{g}: <b>{cnt}</b></span>;
+        })}
+      </div>
+    </div>
+  );
+}
+
+function WhatsAppModal({ flight, travelers, onClose }) {
+  const summary = genWhatsAppSummary(flight, travelers);
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    await navigator.clipboard.writeText(summary);
+    setCopied(true); setTimeout(()=>setCopied(false), 2000);
+    showToast('הסיכום הועתק ללוח!');
+  };
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in" onClick={onClose}>
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg border border-gray-200 dark:border-gray-700" onClick={e=>e.stopPropagation()}>
+        <div className="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-bold flex items-center gap-2"><i className="bi bi-whatsapp text-green-500"></i> סיכום לווטסאפ</h3>
+          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"><i className="bi bi-x-lg"></i></button>
+        </div>
+        <div className="p-5">
+          <pre className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 text-sm whitespace-pre-wrap font-[inherit] leading-relaxed max-h-72 overflow-y-auto">{summary}</pre>
+        </div>
+        <div className="flex gap-3 p-5 pt-0">
+          <button onClick={copy} className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-sm transition-all ${copied?'bg-green-700':'bg-green-500 hover:bg-green-600'} text-white`}>
+            <i className={`bi ${copied?'bi-check-lg':'bi-clipboard'}`}></i> {copied?'הועתק!':'העתק'}
+          </button>
+          <button onClick={()=>window.open(`https://wa.me/?text=${encodeURIComponent(summary)}`,'_blank')}
+            className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl font-semibold text-sm transition-all">
+            <i className="bi bi-box-arrow-up-left"></i> פתח בווטסאפ
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FlightSection({ flight, travelers: initTravelers, onUpdate }) {
+  const [travelers, setTravelers] = useState(initTravelers);
+  const [filterGroup, setFilterGroup] = useState('');
+  const [searchQ, setSearchQ] = useState('');
+  const [sortCol, setSortCol] = useState('serial');
+  const [sortDir, setSortDir] = useState('asc');
+  const [showWA, setShowWA] = useState(false);
+
+  useEffect(() => { setTravelers(initTravelers); }, [initTravelers]);
+
+  const handleUpdate = (id, field, val) => {
+    setTravelers(prev => prev.map(t => t.id===id ? {...t,[field]:val} : t));
+    const all = loadTravelers() || [];
+    saveTravelers(all.map(t => t.id===id ? {...t,[field]:val} : t));
+    if (onUpdate) onUpdate();
+  };
+
+  const toggleSort = col => { if (sortCol===col) setSortDir(d=>d==='asc'?'desc':'asc'); else { setSortCol(col); setSortDir('asc'); }};
+
+  const filtered = useMemo(() => {
+    let d = [...travelers];
+    if (filterGroup) d = d.filter(t=>t.group===filterGroup);
+    if (searchQ) { const q = searchQ.toLowerCase(); d = d.filter(t => t.fullName?.toLowerCase().includes(q) || t.unit?.toLowerCase().includes(q) || t.hotel?.toLowerCase().includes(q) || t.nationalId?.includes(q)); }
+    d.sort((a,b) => {
+      let va=a[sortCol]??'', vb=b[sortCol]??'';
+      if (typeof va==='number') return sortDir==='asc'?va-vb:vb-va;
+      return sortDir==='asc'?String(va).localeCompare(String(vb),'he'):String(vb).localeCompare(String(va),'he');
+    });
+    return d;
+  }, [travelers, filterGroup, searchQ, sortCol, sortDir]);
+
+  const Th = ({children, col, cls=''}) => (
+    <th className={`px-2 py-2.5 text-[11px] font-semibold text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/80 whitespace-nowrap select-none ${col?'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700':''} ${cls}`}
+      onClick={col ? ()=>toggleSort(col) : undefined}>
+      <div className="flex items-center justify-center gap-0.5">
+        {children}
+        {col && <i className={`bi ${sortCol===col?(sortDir==='asc'?'bi-chevron-up':'bi-chevron-down'):'bi-arrow-down-up'} text-[9px] ${sortCol===col?'opacity-100':'opacity-40'}`}></i>}
+      </div>
+    </th>
+  );
+
+  return (
+    <div className="mb-8 fade-in">
+      {/* Flight Header */}
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <div className="flex items-center gap-3">
+          <div className={`p-2.5 rounded-xl ${flight.direction==='incoming'?'bg-green-100 dark:bg-green-900/30':'bg-blue-100 dark:bg-blue-900/30'}`}>
+            <i className={`bi bi-airplane text-lg ${flight.direction==='incoming'?'text-green-600 dark:text-green-400':'text-blue-600 dark:text-blue-400'}`} style={flight.direction==='incoming'?{transform:'scaleX(-1)'}:{}}></i>
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-bold">טיסה {flight.flightNumber}</h2>
+              <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${flight.direction==='incoming'?'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400':'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'}`}>
+                {dirEmoji(flight.direction)} {dirLabel(flight.direction)}
+              </span>
+            </div>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{formatDateHebrew(flight.date)} &bull; {flight.time}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={()=>doExportExcel(flight,filtered)} className="flex items-center gap-1.5 px-3.5 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm transition-all">
+            <i className="bi bi-download text-indigo-500"></i> ייצוא לאקסל
+          </button>
+          <button onClick={()=>setShowWA(true)} className="flex items-center gap-1.5 px-3.5 py-2 bg-green-500 hover:bg-green-600 text-white rounded-xl text-sm font-medium shadow-sm transition-all">
+            <i className="bi bi-whatsapp"></i> הפק סיכום לווטסאפ
+          </button>
+        </div>
+      </div>
+
+      <HotelAnalytics travelers={filtered} />
+
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-2.5 mb-3">
+        <div className="relative flex-1 min-w-[200px]">
+          <i className="bi bi-search absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+          <input type="text" placeholder="חיפוש..." value={searchQ} onChange={e=>setSearchQ(e.target.value)}
+            className="w-full pr-9 pl-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:border-indigo-400" />
+        </div>
+        <div className="flex items-center gap-1.5">
+          <i className="bi bi-funnel text-gray-400 text-sm"></i>
+          <select value={filterGroup} onChange={e=>setFilterGroup(e.target.value)}
+            className="text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 focus:outline-none focus:border-indigo-400">
+            <option value="">כל הקבוצות</option>
+            {GROUPS.map(g=><option key={g} value={g}>{g}</option>)}
+          </select>
+          {(filterGroup||searchQ) && <button onClick={()=>{setFilterGroup('');setSearchQ('');}} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"><i className="bi bi-x-lg text-gray-400 text-xs"></i></button>}
+        </div>
+        <span className="text-xs text-gray-400 mr-auto">{filtered.length} / {travelers.length}</span>
+      </div>
+
+      {/* Table */}
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full">
+            <thead>
+              <tr>
+                <Th col="serial">מס"ד</Th>
+                <Th col="unit">גוף</Th>
+                <Th col="rank">דרגה</Th>
+                <Th col="fullName">שם מלא</Th>
+                <Th col="militaryId">מ.א</Th>
+                <Th col="nationalId">ת.ז</Th>
+                <Th col="passport">דרכון</Th>
+                <Th>טלפון</Th>
+                <Th col="group">קבוצה</Th>
+                <Th col="hotel">מלון</Th>
+                <Th col="transportBooked">הסעה</Th>
+                <Th>בדיקת דרכון</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.length===0 ? (
+                <tr><td colSpan={12} className="text-center py-12 text-gray-400"><i className="bi bi-people text-3xl block mb-2 opacity-30"></i>לא נמצאו נוסעים</td></tr>
+              ) : filtered.map((t,i) => (
+                <tr key={t.id} className={`border-t border-gray-100 dark:border-gray-800 hover:bg-indigo-50/40 dark:hover:bg-gray-800/50 transition-colors ${i%2?'bg-gray-50/40 dark:bg-gray-800/20':''}`}>
+                  <td className="px-2 py-2 text-center text-sm font-mono text-gray-400">{t.serial}</td>
+                  <td className="px-2 py-2 text-sm text-center">{t.unit}</td>
+                  <td className="px-2 py-2 text-sm text-center whitespace-nowrap">{t.rank}</td>
+                  <td className="px-2 py-2 text-sm font-medium whitespace-nowrap">{t.fullName}</td>
+                  <td className="px-2 py-2 text-sm text-center font-mono text-gray-500">{t.militaryId}</td>
+                  <td className="px-2 py-2 text-sm text-center font-mono text-gray-500">{t.nationalId}</td>
+                  <td className="px-2 py-2 text-sm text-center font-mono text-gray-500">{t.passport}</td>
+                  <td className="px-2 py-2 text-sm text-center">
+                    <a href={`https://wa.me/${phoneToWA(t.phone)}`} target="_blank" rel="noopener" className="text-green-600 dark:text-green-400 hover:underline font-mono text-xs">{t.phone}</a>
+                  </td>
+                  <td className="px-2 py-2"><GroupDropdown value={t.group} onChange={v=>handleUpdate(t.id,'group',v)} /></td>
+                  <td className="px-2 py-2 min-w-[100px]"><HotelCell value={t.hotel} onChange={v=>handleUpdate(t.id,'hotel',v)} /></td>
+                  <td className="px-2 py-2 text-center">
+                    <input type="checkbox" checked={t.transportBooked} onChange={e=>handleUpdate(t.id,'transportBooked',e.target.checked)}
+                      className="w-4 h-4 rounded accent-indigo-600 cursor-pointer" />
+                  </td>
+                  <td className="px-2 py-2"><div className="flex justify-center"><PassportSwitch value={t.passportCheck} onChange={v=>handleUpdate(t.id,'passportCheck',v)} /></div></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <FlightFooter flight={flight} travelers={filtered} />
+      </div>
+      {showWA && <WhatsAppModal flight={flight} travelers={travelers} onClose={()=>setShowWA(false)} />}
+    </div>
+  );
+}
+
+function DashboardPage({ flights, travelers, onDataChange }) {
+  const nearestFlights = useMemo(() => {
+    const now = new Date();
+    return flights
+      .filter(f => new Date(`${f.date}T${f.time}`) >= now)
+      .sort((a,b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`))
+      .slice(0,2);
+  }, [flights]);
+
+  const travelersMap = useMemo(() => {
+    const m = {};
+    nearestFlights.forEach(f => { m[f.id] = travelers.filter(t=>t.flightId===f.id && !t.isArchived); });
+    return m;
+  }, [nearestFlights, travelers]);
+
+  return (
+    <div className="p-6 max-w-[1600px] mx-auto">
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2"><i className="bi bi-airplane-fill text-indigo-600"></i> מרכז בקרת טיסות</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">מציג {nearestFlights.length} טיסות קרובות</p>
+        </div>
+        <button onClick={onDataChange} className="flex items-center gap-1.5 px-3.5 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm transition-all">
+          <i className="bi bi-arrow-clockwise"></i> רענן
+        </button>
+      </div>
+
+      {nearestFlights.length===0 && (
+        <div className="text-center py-24 text-gray-400">
+          <i className="bi bi-airplane text-6xl block mb-4 opacity-20"></i>
+          <h3 className="text-xl font-semibold mb-2">אין טיסות קרובות</h3>
+          <p className="text-sm">הוסף טיסה חדשה דרך דף "הוסף נוסע"</p>
+        </div>
+      )}
+
+      {nearestFlights.map(f => (
+        <FlightSection key={f.id} flight={f} travelers={travelersMap[f.id]||[]} onUpdate={onDataChange} />
+      ))}
+    </div>
+  );
+}
+
+// ━━━━━━━━━━━━━━━━━━━━ ADD TRAVELER PAGE ━━━━━━━━━━━━━━━━━━━━
+
+function AddPage({ flights, onDataChange, onNavigate }) {
+  const [tab, setTab] = useState('manual');
+  const EMPTY = { unit:'', rank:'', fullName:'', militaryId:'', nationalId:'', passport:'', phone:'', group:GROUPS[0], hotel:'', transportBooked:false, passportCheck:'V', flightId:flights[0]?.id||'' };
+  const [form, setForm] = useState(EMPTY);
+  const [errors, setErrors] = useState({});
+  const [pasteText, setPasteText] = useState('');
+  const [parsed, setParsed] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [newFlightMode, setNewFlightMode] = useState(false);
+  const [nf, setNf] = useState({ flightNumber:'', date:'', time:'', direction:'outgoing' });
+
+  const set = (k,v) => setForm(p=>({...p,[k]:v}));
+
+  const validate = () => {
+    const e = {};
+    if (!form.fullName.trim()) e.fullName = 'שדה חובה';
+    if (!form.flightId && !newFlightMode) e.flightId = 'בחר טיסה';
+    if (newFlightMode && !nf.flightNumber) e.flightNumber = 'חובה';
+    if (newFlightMode && !nf.date) e.date = 'חובה';
+    if (newFlightMode && !nf.time) e.time = 'חובה';
+    setErrors(e);
+    return !Object.keys(e).length;
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!validate()) return;
+    setSaving(true);
+
+    let allFlights = loadFlights()||[];
+    let allTravelers = loadTravelers()||[];
+    let flightId = form.flightId;
+
+    if (newFlightMode) {
+      const newFlight = { ...nf, id: genId() };
+      allFlights.push(newFlight);
+      saveFlights(allFlights);
+      flightId = newFlight.id;
+    }
+
+    const flightTravelers = allTravelers.filter(t=>t.flightId===flightId && !t.isArchived);
+    const newT = { ...form, flightId, id:genId(), serial:flightTravelers.length+1, isArchived:false, createdAt:new Date().toISOString() };
+    allTravelers.push(newT);
+    saveTravelers(allTravelers);
+
+    showToast('הנוסע נוסף בהצלחה!');
+    setForm(EMPTY); setErrors({}); setSaving(false);
+    onDataChange();
+    setTimeout(()=>onNavigate('dashboard'), 800);
+  };
+
+  const handleParse = () => {
+    const r = parseSmartPaste(pasteText);
+    if (!r.fullName && !r.nationalId) { showToast('לא ניתן לנתח. ודא מילות מפתח.','error'); return; }
+    let fid = form.flightId;
+    if (r.flightDate) { const m = flights.find(f=>f.date===r.flightDate); if (m) fid=m.id; }
+    setParsed({...EMPTY,...r,flightId:fid});
+    showToast('הנתונים נותחו!');
+  };
+
+  const Input = ({name, ...props}) => (
+    <input value={form[name]} onChange={e=>set(name,e.target.value)}
+      className={`w-full px-3 py-2.5 text-sm bg-white dark:bg-gray-800 border rounded-xl focus:outline-none focus:border-indigo-400 transition ${errors[name]?'border-red-400':'border-gray-200 dark:border-gray-700'}`} {...props} />
+  );
+
+  const Field = ({label, name, req, children}) => (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{label} {req && <span className="text-red-500">*</span>}</label>
+      {children}
+      {errors[name] && <p className="mt-1 text-xs text-red-500"><i className="bi bi-exclamation-circle"></i> {errors[name]}</p>}
+    </div>
+  );
+
+  return (
+    <div className="p-6 max-w-3xl mx-auto fade-in">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold flex items-center gap-2"><i className="bi bi-person-plus-fill text-indigo-600"></i> הוסף נוסע</h1>
+        <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">הוסף נוסע ידנית או הדבק טקסט לניתוח</p>
+      </div>
+
+      <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl mb-6 w-fit">
+        {[{id:'manual',icon:'bi-person-plus',label:'הוספה ידנית'},{id:'paste',icon:'bi-clipboard',label:'הדבקה חכמה'}].map(({id,icon,label})=>(
+          <button key={id} onClick={()=>setTab(id)}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all ${tab===id?'bg-white dark:bg-gray-900 shadow-sm text-indigo-600 dark:text-indigo-400':'text-gray-500 dark:text-gray-400 hover:text-gray-700'}`}>
+            <i className={`bi ${icon}`}></i> {label}
+          </button>
+        ))}
+      </div>
+
+      {tab==='manual' && (
+        <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-6">
+          {/* Flight selection */}
+          <div className="mb-6 p-4 bg-indigo-50 dark:bg-indigo-950/30 rounded-xl border border-indigo-100 dark:border-indigo-900">
+            <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2"><i className="bi bi-airplane text-indigo-500"></i> בחירת טיסה</h3>
+            {!newFlightMode ? (
+              <div className="flex gap-2 items-end">
+                <div className="flex-1">
+                  <select value={form.flightId} onChange={e=>set('flightId',e.target.value)}
+                    className={`w-full px-3 py-2.5 text-sm bg-white dark:bg-gray-800 border rounded-xl focus:outline-none focus:border-indigo-400 ${errors.flightId?'border-red-400':'border-gray-200 dark:border-gray-700'}`}>
+                    <option value="">בחר טיסה...</option>
+                    {flights.map(f=><option key={f.id} value={f.id}>{f.flightNumber} - {formatDate(f.date)} {f.time} ({dirLabel(f.direction)})</option>)}
+                  </select>
+                </div>
+                <button type="button" onClick={()=>setNewFlightMode(true)} className="px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 whitespace-nowrap">+ טיסה חדשה</button>
+              </div>
+            ) : (
+              <div>
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div><label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">מס׳ טיסה *</label><input value={nf.flightNumber} onChange={e=>setNf(p=>({...p,flightNumber:e.target.value}))} className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 focus:outline-none focus:border-indigo-400" placeholder="TK1234" /></div>
+                  <div><label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">כיוון</label><select value={nf.direction} onChange={e=>setNf(p=>({...p,direction:e.target.value}))} className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800"><option value="outgoing">יוצאים</option><option value="incoming">נכנסים</option></select></div>
+                  <div><label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">תאריך *</label><input type="date" value={nf.date} onChange={e=>setNf(p=>({...p,date:e.target.value}))} className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 focus:outline-none" /></div>
+                  <div><label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">שעה *</label><input type="time" value={nf.time} onChange={e=>setNf(p=>({...p,time:e.target.value}))} className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 focus:outline-none" /></div>
+                </div>
+                <button type="button" onClick={()=>setNewFlightMode(false)} className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">← חזור לבחירת טיסה קיימת</button>
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field label="שם מלא" name="fullName" req><Input name="fullName" placeholder="ישראל ישראלי" /></Field>
+            <Field label="דרגה" name="rank">
+              <input value={form.rank} onChange={e=>set('rank',e.target.value)} list="rl"
+                className="w-full px-3 py-2.5 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:border-indigo-400" placeholder="בחר או הקלד" />
+              <datalist id="rl">{RANKS.map(r=><option key={r} value={r}/>)}</datalist>
+            </Field>
+            <Field label="גוף" name="unit"><Input name="unit" placeholder='8200, אמ"ן...' /></Field>
+            <Field label="מ.א" name="militaryId"><Input name="militaryId" placeholder="7123456" /></Field>
+            <Field label="ת.ז" name="nationalId"><Input name="nationalId" placeholder="012345678" /></Field>
+            <Field label="דרכון" name="passport"><Input name="passport" placeholder="21234567" /></Field>
+            <Field label="טלפון" name="phone"><Input name="phone" placeholder="052-1234567" type="tel" /></Field>
+            <Field label="קבוצה" name="group">
+              <select value={form.group} onChange={e=>set('group',e.target.value)}
+                className="w-full px-3 py-2.5 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:border-indigo-400">
+                {GROUPS.map(g=><option key={g} value={g}>{g}</option>)}
+              </select>
+            </Field>
+            <Field label="מלון" name="hotel"><Input name="hotel" placeholder="דן, הילטון..." /></Field>
+            <div className="sm:col-span-2 flex flex-wrap gap-6 items-center">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={form.transportBooked} onChange={e=>set('transportBooked',e.target.checked)} className="w-4 h-4 accent-indigo-600 rounded" />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">הסעה הוזמנה</span>
+              </label>
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">בדיקת דרכון:</span>
+                <PassportSwitch value={form.passportCheck} onChange={v=>set('passportCheck',v)} />
+                <span className={`text-sm font-medium ${form.passportCheck==='V'?'text-green-600':'text-blue-600'}`}>{form.passportCheck==='V'?'✓ V':'החלקה'}</span>
+              </div>
+            </div>
+          </div>
+
+          <button type="submit" disabled={saving}
+            className="mt-6 w-full flex items-center justify-center gap-2 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white rounded-xl font-semibold transition-all shadow-sm">
+            {saving ? <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full spin"></span> : <i className="bi bi-person-plus"></i>}
+            {saving ? 'שומר...' : 'הוסף נוסע'}
+          </button>
+        </form>
+      )}
+
+      {tab==='paste' && (
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-6">
+          <div className="mb-4">
+            <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-1">הדבק טקסט לניתוח</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">מילות מפתח נתמכות:</p>
+            <div className="flex flex-wrap gap-2">
+              {['שם:','תז:','טלפון:','קבוצה:','טיסה:','כיוון:'].map(k=>(
+                <code key={k} className="text-xs bg-gray-100 dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 px-2 py-1 rounded-lg">{k}</code>
+              ))}
+            </div>
+          </div>
+          <textarea value={pasteText} onChange={e=>setPasteText(e.target.value)}
+            placeholder={`שם: ישראל ישראלי\nתז: 012345678\nטלפון: 0521234567\nקבוצה: כיפה\nטיסה: 27/03/2026\nכיוון: יוצאים`}
+            className="w-full h-48 px-4 py-3 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:border-indigo-400 font-mono leading-relaxed resize-none" dir="rtl" />
+          <button onClick={handleParse} disabled={!pasteText.trim()}
+            className="mt-3 flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl font-semibold text-sm transition-all">
+            <i className="bi bi-magic"></i> נתח טקסט
+          </button>
+
+          {parsed && (
+            <div className="mt-6 p-4 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900 rounded-xl fade-in">
+              <h4 className="font-semibold text-green-800 dark:text-green-300 mb-3 flex items-center gap-2"><i className="bi bi-check-circle-fill"></i> תוצאות ניתוח</h4>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                {[['שם מלא',parsed.fullName],['ת.ז',parsed.nationalId],['טלפון',parsed.phone],['קבוצה',parsed.group],['תאריך טיסה',parsed.flightDate?formatDate(parsed.flightDate):''],['כיוון',parsed.direction==='incoming'?'נכנסים':parsed.direction==='outgoing'?'יוצאים':parsed.direction]].map(([l,v])=>v?(
+                  <div key={l} className="flex gap-2"><span className="text-gray-500">{l}:</span><span className="font-medium">{v}</span></div>
+                ):null)}
+              </div>
+              <div className="flex gap-2 mt-4">
+                <button onClick={()=>{setForm(parsed);setTab('manual');setParsed(null);setPasteText('');}}
+                  className="flex items-center gap-2 px-5 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-semibold">
+                  <i className="bi bi-check-lg"></i> אשר ועבור לטופס
+                </button>
+                <button onClick={()=>setParsed(null)} className="px-5 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700">ביטול</button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ━━━━━━━━━━━━━━━━━━━━ HISTORY PAGE ━━━━━━━━━━━━━━━━━━━━
+
+function HistoryPage({ travelers, flights, onDataChange }) {
+  const archived = useMemo(()=>travelers.filter(t=>t.isArchived), [travelers]);
+  const [search, setSearch] = useState('');
+  const [filterFlight, setFilterFlight] = useState('');
+  const [filterHotel, setFilterHotel] = useState('');
+  const [confirmDel, setConfirmDel] = useState(null);
+
+  const flightMap = useMemo(()=>{ const m={}; flights.forEach(f=>{m[f.id]=f;}); return m; }, [flights]);
+  const hotels = useMemo(()=>[...new Set(archived.map(t=>t.hotel).filter(Boolean))].sort(), [archived]);
+
+  const filtered = useMemo(()=>{
+    let d = [...archived];
+    if (filterFlight) d = d.filter(t=>t.flightId===filterFlight);
+    if (filterHotel) d = d.filter(t=>t.hotel===filterHotel);
+    if (search) { const q=search.toLowerCase(); d=d.filter(t=>t.fullName?.toLowerCase().includes(q)||t.nationalId?.includes(q)||t.hotel?.toLowerCase().includes(q)||flightMap[t.flightId]?.date?.includes(search)); }
+    return d.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  }, [archived, search, filterFlight, filterHotel, flightMap]);
+
+  const restore = id => {
+    const all = loadTravelers()||[];
+    saveTravelers(all.map(t=>t.id===id?{...t,isArchived:false}:t));
+    showToast('הנוסע שוחזר'); onDataChange();
+  };
+  const permDelete = id => {
+    const all = loadTravelers()||[];
+    saveTravelers(all.filter(t=>t.id!==id));
+    setConfirmDel(null); showToast('נמחק לצמיתות','info'); onDataChange();
+  };
+
+  return (
+    <div className="p-6 max-w-6xl mx-auto fade-in">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold flex items-center gap-2"><i className="bi bi-clock-history text-indigo-600"></i> היסטוריה</h1>
+        <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">ארכיון נוסעים</p>
+      </div>
+
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
+          <div className="text-2xl font-bold">{archived.length}</div><div className="text-sm text-gray-500 mt-1">בארכיון</div>
+        </div>
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
+          <div className="text-2xl font-bold">{new Set(archived.map(t=>t.flightId)).size}</div><div className="text-sm text-gray-500 mt-1">טיסות שונות</div>
+        </div>
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
+          <div className="text-2xl font-bold">{hotels.length}</div><div className="text-sm text-gray-500 mt-1">מלונות</div>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-3 mb-5">
+        <div className="relative flex-1 min-w-[200px]">
+          <i className="bi bi-search absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="חיפוש לפי שם, ת.ז, מלון..."
+            className="w-full pr-9 pl-3 py-2.5 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:border-indigo-400" />
+        </div>
+        <select value={filterFlight} onChange={e=>setFilterFlight(e.target.value)} className="px-3 py-2.5 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl">
+          <option value="">כל הטיסות</option>
+          {flights.map(f=><option key={f.id} value={f.id}>{f.flightNumber} - {formatDate(f.date)}</option>)}
+        </select>
+        <select value={filterHotel} onChange={e=>setFilterHotel(e.target.value)} className="px-3 py-2.5 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl">
+          <option value="">כל המלונות</option>
+          {hotels.map(h=><option key={h} value={h}>{h}</option>)}
+        </select>
+        {(search||filterFlight||filterHotel) && <button onClick={()=>{setSearch('');setFilterFlight('');setFilterHotel('');}} className="px-3 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700"><i className="bi bi-x-lg text-gray-400 text-xs"></i></button>}
+      </div>
+
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+        {filtered.length===0 ? (
+          <div className="text-center py-16 text-gray-400"><i className="bi bi-clock-history text-4xl block mb-3 opacity-30"></i><p>לא נמצאו נוסעים בארכיון</p></div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full">
+              <thead>
+                <tr className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800">
+                  <th className="px-4 py-3 text-right font-semibold">שם מלא</th>
+                  <th className="px-4 py-3 text-right font-semibold">דרגה / גוף</th>
+                  <th className="px-4 py-3 text-right font-semibold">קבוצה</th>
+                  <th className="px-4 py-3 text-right font-semibold">מלון</th>
+                  <th className="px-4 py-3 text-right font-semibold">טיסה</th>
+                  <th className="px-4 py-3 text-right font-semibold">ת.ז / דרכון</th>
+                  <th className="px-4 py-3 text-center font-semibold">פעולות</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((t,i) => {
+                  const fl = flightMap[t.flightId];
+                  const gc = GROUP_COLORS[t.group]||{};
+                  return (
+                    <tr key={t.id} className={`border-t border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors ${i%2?'bg-gray-50/30 dark:bg-gray-800/20':''}`}>
+                      <td className="px-4 py-3"><div className="font-medium">{t.fullName}</div><div className="text-xs text-gray-400 font-mono">{t.phone}</div></td>
+                      <td className="px-4 py-3 text-sm"><div>{t.rank}</div><div className="text-xs text-gray-400">{t.unit}</div></td>
+                      <td className="px-4 py-3"><span className={`text-[11px] px-2 py-0.5 rounded-full border font-medium ${gc.bg} ${gc.text} ${gc.border}`}>{t.group}</span></td>
+                      <td className="px-4 py-3 text-sm">{t.hotel ? <span className="flex items-center gap-1"><i className="bi bi-building text-gray-400 text-xs"></i>{t.hotel}</span> : <span className="text-gray-400 text-xs">—</span>}</td>
+                      <td className="px-4 py-3 text-sm">{fl ? <div><div className="font-medium">{fl.flightNumber}</div><div className="text-xs text-gray-400"><i className="bi bi-calendar text-[10px]"></i> {formatDate(fl.date)}</div></div> : '—'}</td>
+                      <td className="px-4 py-3 text-xs font-mono text-gray-500"><div>{t.nationalId}</div><div className="text-gray-400">{t.passport}</div></td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-center gap-2">
+                          <button onClick={()=>restore(t.id)} className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg" title="שחזר"><i className="bi bi-arrow-counterclockwise"></i></button>
+                          <button onClick={()=>setConfirmDel(t)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg" title="מחק לצמיתות"><i className="bi bi-trash"></i></button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {confirmDel && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in" onClick={()=>setConfirmDel(null)}>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-6 w-full max-w-sm border border-gray-200 dark:border-gray-700" onClick={e=>e.stopPropagation()}>
+            <div className="flex items-start gap-3 mb-4">
+              <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-xl"><i className="bi bi-exclamation-triangle-fill text-red-600"></i></div>
+              <div>
+                <h3 className="font-bold">מחיקה לצמיתות</h3>
+                <p className="text-sm text-gray-500 mt-1">האם למחוק את <b>{confirmDel.fullName}</b> לצמיתות? לא ניתן לבטל.</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={()=>permDelete(confirmDel.id)} className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold text-sm">מחק</button>
+              <button onClick={()=>setConfirmDel(null)} className="flex-1 py-2.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl font-semibold text-sm">ביטול</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ━━━━━━━━━━━━━━━━━━━━ GUIDE PAGE ━━━━━━━━━━━━━━━━━━━━
+
+function GuidePage() {
+  const Section = ({icon, title, color, children}) => (
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden mb-5">
+      <div className={`flex items-center gap-3 px-6 py-4 border-b border-gray-100 dark:border-gray-800 ${color}`}>
+        <i className={`bi ${icon} text-lg`}></i>
+        <h2 className="text-lg font-bold">{title}</h2>
+      </div>
+      <div className="px-6 py-5 text-sm text-gray-600 dark:text-gray-400 leading-7 space-y-3">{children}</div>
+    </div>
+  );
+  const Step = ({n, children}) => (
+    <div className="flex items-start gap-3">
+      <span className="flex-shrink-0 w-6 h-6 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded-full flex items-center justify-center text-xs font-bold mt-0.5">{n}</span>
+      <p className="flex-1">{children}</p>
+    </div>
+  );
+  const Code = ({children}) => <code className="bg-gray-100 dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded text-xs">{children}</code>;
+
+  return (
+    <div className="p-6 max-w-3xl mx-auto fade-in">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold flex items-center gap-2"><i className="bi bi-book text-indigo-600"></i> מדריך למשתמש</h1>
+        <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">מרכז בקרת טיסות — שלב אחר שלב</p>
+      </div>
+
+      <Section icon="bi-airplane" title='לוגיקת "שתי הטיסות הקרובות"' color="text-indigo-700 dark:text-indigo-300">
+        <p>הלוח הראשי מזהה אוטומטית את שתי הטיסות הקרובות ביותר שטרם יצאו.</p>
+        <Step n="1">המערכת בודקת את כל הטיסות הרשומות.</Step>
+        <Step n="2">מסננת רק טיסות שתאריך + שעתן &gt;= הרגע הנוכחי.</Step>
+        <Step n="3">ממיינת לפי תאריך + שעה בסדר עולה.</Step>
+        <Step n="4">בוחרת את שתי הראשונות ומציגה כל אחת בטבלה נפרדת.</Step>
+        <p className="text-amber-600 dark:text-amber-400 flex items-start gap-2">
+          <i className="bi bi-lightbulb mt-0.5 flex-shrink-0"></i>
+          אם קיימת רק טיסה אחת, תוצג טבלה אחת. ניתן להוסיף טיסות חדשות בדף "הוסף נוסע".
+        </p>
+      </Section>
+
+      <Section icon="bi-toggle-on" title='מתג V / החלקה' color="text-green-700 dark:text-green-300">
+        <p>סטטוס בדיקת דרכון לכל נוסע:</p>
+        <div className="grid grid-cols-2 gap-3 my-2">
+          <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900 rounded-xl p-3">
+            <div className="font-bold text-green-700 dark:text-green-400 mb-1">✓ V — ימין (ירוק)</div>
+            <p className="text-green-600 dark:text-green-500">הדרכון עבר בדיקה מלאה.</p>
+          </div>
+          <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 rounded-xl p-3">
+            <div className="font-bold text-blue-700 dark:text-blue-400 mb-1">החלקה — שמאל (כחול)</div>
+            <p className="text-blue-600 dark:text-blue-500">הנוסע עובר ללא בדיקה.</p>
+          </div>
+        </div>
+        <Step n="1">לחץ על המתג בשורת הנוסע.</Step>
+        <Step n="2">השינוי נשמר אוטומטית (Optimistic Update).</Step>
+        <Step n="3">ספירת "סה"כ החלקה" מתעדכנת בזמן אמת.</Step>
+      </Section>
+
+      <Section icon="bi-whatsapp" title="סיכום לווטסאפ" color="text-green-700 dark:text-green-300">
+        <Step n="1">בכותרת טבלת הטיסה, לחץ <b>"הפק סיכום לווטסאפ"</b>.</Step>
+        <Step n="2">תיפתח חלונית עם הסיכום.</Step>
+        <Step n="3">לחץ "העתק" או "פתח בווטסאפ".</Step>
+        <p>הסיכום מכיל:</p>
+        <ul className="list-disc list-inside space-y-1 mr-4">
+          <li>מספר טיסה, תאריך ושעה</li>
+          <li>כיוון, מספר כולל, ספירת החלקה</li>
+          <li>פירוט לפי קבוצה: כמות · POC · מלון · חדרים</li>
+        </ul>
+        <p>חישוב חדרים: <Code>ceil(אנשים / 2)</Code></p>
+      </Section>
+
+      <Section icon="bi-clipboard" title="הדבקה חכמה" color="text-purple-700 dark:text-purple-300">
+        <p>הוספת נוסע על ידי הדבקת טקסט עם מילות מפתח:</p>
+        <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 font-mono text-sm leading-8 my-2">
+          <div><Code>שם:</Code> ישראל ישראלי</div>
+          <div><Code>תז:</Code> 012345678</div>
+          <div><Code>טלפון:</Code> 0521234567</div>
+          <div><Code>קבוצה:</Code> כיפה</div>
+          <div><Code>טיסה:</Code> 27/03/2026</div>
+          <div><Code>כיוון:</Code> יוצאים</div>
+        </div>
+        <Step n="1">עבור לדף "הוסף נוסע" → "הדבקה חכמה".</Step>
+        <Step n="2">הדבק טקסט ולחץ "נתח טקסט".</Step>
+        <Step n="3">בדוק תוצאות ולחץ "אשר ועבור לטופס".</Step>
+        <Step n="4">השלם שדות חסרים ולחץ "הוסף נוסע".</Step>
+      </Section>
+
+      <Section icon="bi-clock-history" title="היסטוריה וארכיון" color="text-orange-700 dark:text-orange-300">
+        <Step n="1">נוסעים שנמחקו עוברים לארכיון (מחיקה רכה).</Step>
+        <Step n="2">בדף "היסטוריה" חפש לפי שם, ת.ז, תאריך טיסה, או מלון.</Step>
+        <Step n="3">לחץ ↩ לשחזור נוסע.</Step>
+        <Step n="4">לחץ אשפה למחיקה לצמיתות (לא ניתן לבטל).</Step>
+      </Section>
+    </div>
+  );
+}
+
+// ━━━━━━━━━━━━━━━━━━━━ SIDEBAR ━━━━━━━━━━━━━━━━━━━━
+
+function Sidebar({ page, onNavigate, dark, onToggleDark }) {
+  const [hovered, setHovered] = useState(null);
+  const items = [
+    { id:'dashboard', icon:'bi-grid-3x3-gap-fill', label:'לוח בקרה' },
+    { id:'add', icon:'bi-person-plus-fill', label:'הוסף נוסע' },
+    { id:'history', icon:'bi-clock-history', label:'היסטוריה' },
+    { id:'guide', icon:'bi-book', label:'מדריך' },
+  ];
+  return (
+    <aside className="fixed right-0 top-0 h-full w-16 bg-gray-900 dark:bg-gray-950 flex flex-col items-center py-4 z-50 border-l border-gray-700/50">
+      <div className="mb-6">
+        <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center">
+          <i className="bi bi-airplane-fill text-white text-lg"></i>
+        </div>
+      </div>
+      <nav className="flex flex-col gap-2 flex-1">
+        {items.map(({id,icon,label}) => (
+          <div key={id} className="relative" onMouseEnter={()=>setHovered(id)} onMouseLeave={()=>setHovered(null)}>
+            <button onClick={()=>onNavigate(id)}
+              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${page===id?'bg-indigo-600 text-white':'text-gray-400 hover:bg-gray-700 hover:text-white'}`}>
+              <i className={`bi ${icon}`}></i>
+            </button>
+            {hovered===id && (
+              <div className="absolute left-full top-1/2 -translate-y-1/2 mr-3 bg-gray-800 text-white text-sm px-3 py-1.5 rounded-lg whitespace-nowrap shadow-lg z-50 border border-gray-700">
+                {label}
+              </div>
+            )}
+          </div>
+        ))}
+      </nav>
+      <button onClick={onToggleDark} className="w-10 h-10 rounded-xl text-gray-400 hover:bg-gray-700 hover:text-white flex items-center justify-center transition-all"
+        title={dark?'מצב בהיר':'מצב כהה'}>
+        <i className={`bi ${dark?'bi-sun-fill':'bi-moon-fill'}`}></i>
+      </button>
+    </aside>
+  );
+}
+
+// ━━━━━━━━━━━━━━━━━━━━ APP ━━━━━━━━━━━━━━━━━━━━
+
+function App() {
+  const [page, setPage] = useState('dashboard');
+  const [dark, setDark] = useState(false);
+  const [data, setData] = useState(null);
+
+  useEffect(() => {
+    const stored = localStorage.getItem('fc_dark');
+    if (stored==='true' || (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      setDark(true); document.documentElement.classList.add('dark');
+    }
+    setData(initData());
+  }, []);
+
+  const toggleDark = () => {
+    const next = !dark;
+    setDark(next);
+    localStorage.setItem('fc_dark', String(next));
+    document.documentElement.classList.toggle('dark', next);
+  };
+
+  const refreshData = useCallback(() => {
+    setData({ flights: loadFlights()||[], travelers: loadTravelers()||[] });
+  }, []);
+
+  if (!data) return (
+    <div className="flex items-center justify-center h-screen">
+      <div className="text-center text-gray-400"><i className="bi bi-airplane text-4xl block mb-3 spin"></i><p>טוען...</p></div>
+    </div>
+  );
+
+  return (
+    <div className="flex min-h-screen">
+      <Sidebar page={page} onNavigate={setPage} dark={dark} onToggleDark={toggleDark} />
+      <main className="flex-1 mr-16 overflow-x-hidden min-h-screen">
+        {page==='dashboard' && <DashboardPage flights={data.flights} travelers={data.travelers} onDataChange={refreshData} />}
+        {page==='add' && <AddPage flights={data.flights} onDataChange={refreshData} onNavigate={setPage} />}
+        {page==='history' && <HistoryPage travelers={data.travelers} flights={data.flights} onDataChange={refreshData} />}
+        {page==='guide' && <GuidePage />}
+      </main>
+      <ToastContainer />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
