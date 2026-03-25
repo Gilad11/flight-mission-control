@@ -18,8 +18,8 @@ function PassportSwitch({ value, onChange }) {
       className={`relative inline-flex h-7 w-16 items-center rounded-full transition-colors focus:outline-none ${isV ? 'bg-green-500' : 'bg-blue-500'}`}
       title={isV ? 'V - אושר' : 'החלקה'}
     >
-      <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${isV ? 'translate-x-1' : 'translate-x-10'}`} />
-      <span className={`absolute text-xs font-bold text-white ${isV ? 'right-1.5' : 'left-1.5'}`}>{isV ? 'V' : 'ה'}</span>
+      <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${isV ? 'translate-x-10' : 'translate-x-1'}`} />
+      <span className={`absolute text-xs font-bold text-white ${isV ? 'left-1.5' : 'right-1.5'}`}>{isV ? 'V' : 'ה'}</span>
     </button>
   );
 }

@@ -267,8 +267,8 @@ export default function AddPage() {
                   onClick={() => setForm(p => ({ ...p, passportCheck: p.passportCheck === 'V' ? 'החלקה' : 'V' }))}
                   className={`relative inline-flex h-7 w-16 items-center rounded-full transition-colors ${form.passportCheck === 'V' ? 'bg-green-500' : 'bg-blue-500'}`}
                 >
-                  <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${form.passportCheck === 'V' ? 'translate-x-1' : 'translate-x-10'}`} />
-                  <span className={`absolute text-xs font-bold text-white ${form.passportCheck === 'V' ? 'right-1.5' : 'left-1.5'}`}>
+                  <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${form.passportCheck === 'V' ? 'translate-x-10' : 'translate-x-1'}`} />
+                  <span className={`absolute text-xs font-bold text-white ${form.passportCheck === 'V' ? 'left-1.5' : 'right-1.5'}`}>
                     {form.passportCheck === 'V' ? 'V' : 'ה'}
                   </span>
                 </button>
