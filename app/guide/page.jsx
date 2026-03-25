@@ -1,4 +1,4 @@
-import { BookOpen, Plane, Smartphone, ToggleLeft, MessageSquare, PlusCircle, History, Lightbulb } from 'lucide-react';
+import { BookOpen, Plane, ToggleLeft, MessageSquare, PlusCircle, Pencil, Archive, Hotel, Lightbulb, Globe } from 'lucide-react';
 
 const Section = ({ icon: Icon, title, color, children }) => (
   <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden mb-5">
@@ -31,83 +31,84 @@ export default function GuidePage() {
           <BookOpen className="w-7 h-7 text-indigo-600" />
           מדריך למשתמש
         </h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">מרכז בקרת טיסות &mdash; מדריך שלב אחר שלב</p>
+        <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">מרכז בקרת טיסות — מדריך שלב אחר שלב</p>
       </div>
 
-      <Section icon={Plane} title='לוגיקת "שתי הטיסות הקרובות"' color="text-indigo-700 dark:text-indigo-300">
-        <p>הלוח הראשי מזהה אוטומטית את שתי הטיסות הקרובות ביותר שטרם יצאו.</p>
-        <Step n="1">המערכת בודקת את כל הטיסות הרשומות במסד הנתונים.</Step>
-        <Step n="2">מסננת רק טיסות שתאריך + שעתן גדולים מהרגע הנוכחי.</Step>
-        <Step n="3">ממיינת אותן לפי תאריך + שעה בסדר עולה.</Step>
-        <Step n="4">בוחרת את שתי הראשונות ומציגה כל אחת בטבלה נפרדת.</Step>
+      <Section icon={Plane} title="לוח בקרה — תצוגה בלבד" color="text-indigo-700 dark:text-indigo-300">
+        <p>הלוח הראשי מציג את <strong>כל הטיסות המתוכננות להיום</strong> בטבלאות נפרדות. התצוגה הינה לקריאה בלבד.</p>
+        <Step n="1">המערכת מזהה אוטומטית את כל הטיסות שתאריכן הוא היום.</Step>
+        <Step n="2">ממיינת אותן לפי שעה בסדר עולה.</Step>
+        <Step n="3">כל טיסה מוצגת בטבלה נפרדת עם כותרת, פירוט נוסעים ומלונות.</Step>
+        <Step n="4">כרטיסי סיכום קבוצות מוצגים בראש הדף — סה"כ אנשים בכל אחת מ-6 הקבוצות.</Step>
         <p className="text-amber-600 dark:text-amber-400 flex items-start gap-2">
           <Lightbulb className="w-4 h-4 mt-0.5 flex-shrink-0" />
-          אם קיימת רק טיסה אחת קרובה, תוצג טבלה אחת בלבד. ניתן להוסיף טיסות חדשות בדף &#34;הוסף נוסע&#34;.
+          עמודת מס"ד (מספר סידורי) מוסתרת בתצוגת הלוח אך נשמרת בנתונים ומופיעה בייצוא לאקסל.
+        </p>
+        <p><strong>קיצורי דרגות:</strong> המערכת ממירה אוטומטית שמות דרגות לקיצורים עבריים (למשל: סגן אלוף → סא"ל, רב סרן → רס"ן).</p>
+      </Section>
+
+      <Section icon={Hotel} title="כרטיסי מלונות אינטראקטיביים" color="text-teal-700 dark:text-teal-300">
+        <Step n="1">כרטיסי מלון מוצגים מעל כל טבלת טיסה עם ספירת אנשים.</Step>
+        <Step n="2"><strong>לחיצה על כרטיס מלון</strong> פותחת תצוגה מפורטת של כל הנוסעים באותו מלון.</Step>
+        <Step n="3">בתצוגת המלון ניתן להחליף מלון באמצעות תפריט נפתח.</Step>
+        <Step n="4">כל כרטיס מציג <strong>דירוג אבטחה</strong> (1-5 כוכבים).</Step>
+        <p className="text-amber-600 dark:text-amber-400 flex items-start gap-2">
+          <Lightbulb className="w-4 h-4 mt-0.5 flex-shrink-0" />
+          ניתן לערוך את דירוג הכוכבים רק מדף <strong>עריכה וניהול</strong>.
         </p>
       </Section>
 
       <Section icon={ToggleLeft} title='מתג V / החלקה (בדיקת דרכון)' color="text-green-700 dark:text-green-300">
-        <p>המתג מייצג את סטטוס בדיקת הדרכון עבור כל נוסע:</p>
         <div className="grid grid-cols-2 gap-3 my-2">
           <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900 rounded-xl p-3">
-            <div className="font-bold text-green-700 dark:text-green-400 mb-1">&#x2713; V &mdash; מצב ימין (ירוק)</div>
-            <p className="text-green-600 dark:text-green-500">הדרכון עבר בדיקה מלאה. הנוסע אושר.</p>
+            <div className="font-bold text-green-700 dark:text-green-400 mb-1">✓ V — ימין (ירוק)</div>
+            <p className="text-green-600 dark:text-green-500">הדרכון עבר בדיקה מלאה.</p>
           </div>
           <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 rounded-xl p-3">
-            <div className="font-bold text-blue-700 dark:text-blue-400 mb-1">החלקה &mdash; מצב שמאל (כחול)</div>
-            <p className="text-blue-600 dark:text-blue-500">הנוסע עובר ללא בדיקת דרכון. &#34;מחליק&#34; את הביקורת.</p>
+            <div className="font-bold text-blue-700 dark:text-blue-400 mb-1">החלקה — שמאל (כחול)</div>
+            <p className="text-blue-600 dark:text-blue-500">הנוסע עובר ללא בדיקת דרכון.</p>
           </div>
         </div>
-        <Step n="1">לחץ על המתג בשורת הנוסע בטבלה.</Step>
-        <Step n="2">השינוי נשמר אוטומטית (Optimistic Update).</Step>
-        <Step n="3">ספירת &#34;סה&#34;כ החלקה&#34; בכותרת הטבלה מתעדכנת בזמן אמת.</Step>
+        <p>ניתן לשנות את המתג רק מדף <strong>עריכה וניהול</strong>. בלוח הבקרה מוצג סטטוס בלבד.</p>
       </Section>
 
-      <Section icon={MessageSquare} title="יצירת סיכום לווטסאפ" color="text-green-700 dark:text-green-300">
-        <Step n="1">בכותרת כל טבלת טיסה, לחץ על כפתור <strong>&#34;הפק סיכום לווטסאפ&#34;</strong>.</Step>
-        <Step n="2">תיפתח חלונית עם הסיכום המפורמט.</Step>
-        <Step n="3">לחץ &#34;העתק&#34; להעתקת הטקסט ללוח, או &#34;פתח בווטסאפ&#34; לשיגור ישיר.</Step>
-        <p>הסיכום מכיל:</p>
-        <ul className="list-disc list-inside space-y-1 mr-4">
-          <li>כותרת עם מספר הטיסה, תאריך ושעה</li>
-          <li>סטטוס &mdash; כיוון הטיסה, מספר כולל, ספירת החלקה</li>
-          <li>פירוט לפי קבוצה: כמות &middot; שם POC &middot; מלון &middot; מספר חדרים מחושב</li>
-        </ul>
-        <p>חישוב חדרים: <Code>חדרים = ceil(אנשים / 2)</Code></p>
+      <Section icon={Pencil} title="עריכה וניהול" color="text-orange-700 dark:text-orange-300">
+        <p>דף <strong>עריכה וניהול</strong> הוא המקום היחיד בו ניתן לבצע שינויים:</p>
+        <Step n="1">בחר טיסה מהרשימה הנפתחת.</Step>
+        <Step n="2">ערוך ישירות: מלון (לחיצה על תא), קבוצה (תפריט), הסעה (תיבת סימון), בדיקת דרכון (מתג).</Step>
+        <Step n="3">העבר נוסע לארכיון באמצעות כפתור האשפה.</Step>
+        <Step n="4">מחק טיסה שלמה (משימה שבוטלה) — כל הנוסעים יועברו לארכיון.</Step>
+        <Step n="5">ערוך דירוג אבטחת מלונות (כוכבים 1-5).</Step>
+      </Section>
+
+      <Section icon={Globe} title="סיכום לווטסאפ דו-לשוני" color="text-green-700 dark:text-green-300">
+        <Step n="1">בלוח הבקרה, לחץ <strong>"הפק סיכום לווטסאפ"</strong>.</Step>
+        <Step n="2">בחר שפה: <strong>עברית</strong> או <strong>English</strong>.</Step>
+        <Step n="3">הסיכום נוצר באותו פורמט בשתי השפות.</Step>
+        <Step n="4">לחץ "העתק" או "פתח בווטסאפ" לשליחה ישירה.</Step>
+        <p>הסיכום כולל: מספר טיסה, תאריך, שעה, כיוון, סה"כ נוסעים, ספירת החלקה, ופירוט לפי קבוצה (POC, מלון, חדרים).</p>
       </Section>
 
       <Section icon={PlusCircle} title="הדבקה חכמה (Smart Paste)" color="text-purple-700 dark:text-purple-300">
-        <p>מאפשרת להוסיף נוסע על ידי הדבקת טקסט חופשי המכיל מילות מפתח קבועות:</p>
+        <p>מאפשרת להוסיף נוסע על ידי הדבקת טקסט חופשי:</p>
         <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 font-mono text-sm leading-8 my-2">
           <div><Code>שם:</Code> ישראל ישראלי</div>
           <div><Code>תז:</Code> 012345678</div>
           <div><Code>טלפון:</Code> 0521234567</div>
           <div><Code>קבוצה:</Code> כיפה</div>
-          <div><Code>טיסה:</Code> 27/03/2026</div>
+          <div><Code>טיסה:</Code> 25/03/2026</div>
           <div><Code>כיוון:</Code> יוצאים</div>
         </div>
-        <Step n="1">עבור לדף &#34;הוסף נוסע&#34; &#x2192; לשונית &#34;הדבקה חכמה&#34;.</Step>
-        <Step n="2">הדבק את הטקסט בתיבת הטקסט.</Step>
-        <Step n="3">לחץ &#34;נתח טקסט&#34;.</Step>
-        <Step n="4">בדוק את התוצאות המוצגות ולחץ &#34;אשר ועבור לטופס&#34;.</Step>
-        <Step n="5">השלם שדות חסרים בטופס ולחץ &#34;הוסף נוסע&#34;.</Step>
-        <p className="text-amber-600 dark:text-amber-400 flex items-start gap-2">
-          <Lightbulb className="w-4 h-4 mt-0.5 flex-shrink-0" />
-          עבור <strong>כיוון</strong>, המערכת מזהה: יוצאים/עוזב/outgoing &#x2190; יוצאים; נכנסים/מגיע/incoming &#x2190; נכנסים.
-        </p>
+        <Step n="1">עבור לדף "הוסף נוסע" → לשונית "הדבקה חכמה".</Step>
+        <Step n="2">הדבק את הטקסט ולחץ "נתח טקסט".</Step>
+        <Step n="3">אשר את התוצאות ועבור לטופס להשלמה.</Step>
       </Section>
 
-      <Section icon={Smartphone} title="ייצוא לאקסל" color="text-teal-700 dark:text-teal-300">
-        <Step n="1">בכותרת כל טיסה לחץ על כפתור &#34;ייצוא לאקסל&#34;.</Step>
-        <Step n="2">קובץ <Code>.xlsx</Code> יורד אוטומטית עם כל פרטי הנוסעים.</Step>
-        <p>הקובץ כולל את כל העמודות: מס&#34;ד, גוף, דרגה, שם מלא, מ.א, ת.ז, דרכון, טלפון, קבוצה, מלון, הסעה הוזמנה, בדיקת דרכון.</p>
-      </Section>
-
-      <Section icon={History} title="היסטוריה וארכיון" color="text-orange-700 dark:text-orange-300">
-        <Step n="1">נוסעים שנמחקו עוברים לארכיון (מחיקה רכה).</Step>
-        <Step n="2">בדף &#34;היסטוריה&#34; ניתן לחפש לפי שם, ת.ז, תאריך טיסה, או מלון.</Step>
-        <Step n="3">לחץ על סמל ה-&#x21A9; לשחזור נוסע לטיסה המקורית.</Step>
-        <Step n="4">לחץ על סמל האשפה למחיקה לצמיתות (לא ניתן לבטל).</Step>
+      <Section icon={Archive} title="ארכיון" color="text-rose-700 dark:text-rose-300">
+        <Step n="1">נוסעים שנמחקים (מדף העריכה) עוברים לארכיון — לא נמחקים לצמיתות.</Step>
+        <Step n="2">בדף <strong>ארכיון</strong> ניתן לחפש לפי שם, ת.ז, תאריך טיסה, או מלון.</Step>
+        <Step n="3">לחץ ↩ לשחזור נוסע לטיסה המקורית.</Step>
+        <Step n="4">לחץ על סמל האשפה למחיקה סופית (לא ניתן לבטל).</Step>
       </Section>
     </div>
   );

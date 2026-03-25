@@ -2,12 +2,13 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, UserPlus, History, BookOpen, Plane, Moon, Sun } from 'lucide-react';
+import { LayoutDashboard, UserPlus, Pencil, Archive, BookOpen, Plane, Moon, Sun } from 'lucide-react';
 
 const NAV_ITEMS = [
   { href: '/', icon: LayoutDashboard, label: 'לוח בקרה' },
   { href: '/add', icon: UserPlus, label: 'הוסף נוסע' },
-  { href: '/history', icon: History, label: 'היסטוריה' },
+  { href: '/edit', icon: Pencil, label: 'עריכה וניהול' },
+  { href: '/archive', icon: Archive, label: 'ארכיון' },
   { href: '/guide', icon: BookOpen, label: 'מדריך' },
 ];
 
