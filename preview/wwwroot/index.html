@@ -45,14 +45,13 @@
 const { useState, useEffect, useMemo, useCallback, useRef } = React;
 
 // ━━━━━━━━━━━━━━━━━━━━ CONSTANTS ━━━━━━━━━━━━━━━━━━━━
-const GROUPS = ["טכנולוג׳יקל גרופ","כיפה",'מפע"ם',"איי סטאר","מנהלת מלטים","נספחות"];
+const GROUPS = ["טכנולוג׳יקל גרופ","כיפה",'מפע"ם',"איי סטאר","נספחות"];
 
 const GROUP_COLORS = {
   "טכנולוג׳יקל גרופ": { bg:"bg-blue-100 dark:bg-blue-900/30", text:"text-blue-700 dark:text-blue-300", border:"border-blue-300 dark:border-blue-700" },
   "כיפה": { bg:"bg-purple-100 dark:bg-purple-900/30", text:"text-purple-700 dark:text-purple-300", border:"border-purple-300 dark:border-purple-700" },
   'מפע"ם': { bg:"bg-orange-100 dark:bg-orange-900/30", text:"text-orange-700 dark:text-orange-300", border:"border-orange-300 dark:border-orange-700" },
   "איי סטאר": { bg:"bg-green-100 dark:bg-green-900/30", text:"text-green-700 dark:text-green-300", border:"border-green-300 dark:border-green-700" },
-  "מנהלת מלטים": { bg:"bg-teal-100 dark:bg-teal-900/30", text:"text-teal-700 dark:text-teal-300", border:"border-teal-300 dark:border-teal-700" },
   "נספחות": { bg:"bg-rose-100 dark:bg-rose-900/30", text:"text-rose-700 dark:text-rose-300", border:"border-rose-300 dark:border-rose-700" },
 };
 
@@ -95,17 +94,24 @@ const GROUP_TRANSLATIONS = {
   "כיפה": "Kipa",
   'מפע"ם': 'Mapa"m',
   "איי סטאר": "I-Star",
-  "מנהלת מלטים": "Malta Administration",
   "נספחות": "Attache Office"
 };
 
+const DEFAULT_GROUP_POCS = {
+  "טכנולוג׳יקל גרופ": "דני רייזמן",
+  "כיפה": "פטר סילאגי",
+  'מפע"ם': "מני עברי",
+  "איי סטאר": "עמיחי טרייבר",
+  "נספחות": "שחר פיינמסר"
+};
+
+const GROUP_POCS_KEY = 'flightmanager_group_pocs';
+
 const DEFAULT_HOTEL_RATINGS = {
-  "דן": 5,
-  "הילטון": 4,
-  "פנינסולה": 4,
-  "קינג דייוויד": 5,
-  "שרתון": 3,
-  "הרודס": 3
+  "Shangri-La": 5,
+  "Dusit-Thani": 4,
+  "VOGO": 3,
+  "W": 4,
 };
 
 // ━━━━━━━━━━━━━━━━━━━━ MOCK DATA ━━━━━━━━━━━━━━━━━━━━
@@ -120,39 +126,39 @@ const MOCK_FLIGHTS = [
 
 const MOCK_TRAVELERS = [
   // Flight 001 - TK1580 - outgoing - today 14:30 (10 travelers)
-  { id:"t001",flightId:"flight_001",serial:1,unit:"8200",rank:"סגן",fullName:"ישראל כהן",militaryId:"7123456",nationalId:"012345678",passport:"21234567",phone:"0521234567",group:"טכנולוג׳יקל גרופ",hotel:"דן",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:"2026-03-20T10:00:00Z" },
-  { id:"t002",flightId:"flight_001",serial:2,unit:"81",rank:"סרן",fullName:"שרה לוי",militaryId:"7234567",nationalId:"023456789",passport:"22345678",phone:"0532345678",group:"טכנולוג׳יקל גרופ",hotel:"דן",transportBooked:false,passportCheck:"החלקה",isArchived:false,createdAt:"2026-03-20T10:00:00Z" },
-  { id:"t003",flightId:"flight_001",serial:3,unit:"מג'ן",rank:"רב סמל",fullName:"דוד אברהם",militaryId:"7345678",nationalId:"034567890",passport:"23456789",phone:"0543456789",group:"כיפה",hotel:"פנינסולה",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:"2026-03-20T10:00:00Z" },
-  { id:"t004",flightId:"flight_001",serial:4,unit:'אמ"ן',rank:"אלוף משנה",fullName:"רחל גולן",militaryId:"7456789",nationalId:"045678901",passport:"24567890",phone:"0554567890",group:"כיפה",hotel:"פנינסולה",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:"2026-03-20T10:00:00Z" },
-  { id:"t005",flightId:"flight_001",serial:5,unit:"חיל האוויר",rank:"סגן אלוף",fullName:"מיכאל ברק",militaryId:"7567890",nationalId:"056789012",passport:"25678901",phone:"0565678901",group:'מפע"ם',hotel:"הילטון",transportBooked:false,passportCheck:"החלקה",isArchived:false,createdAt:"2026-03-20T10:00:00Z" },
-  { id:"t006",flightId:"flight_001",serial:6,unit:'מטכ"ל',rank:"רב אלוף",fullName:"אורית שמיר",militaryId:"7678901",nationalId:"067890123",passport:"26789012",phone:"0576789012",group:'מפע"ם',hotel:"הילטון",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:"2026-03-20T10:00:00Z" },
-  { id:"t007",flightId:"flight_001",serial:7,unit:"חיל הים",rank:"סמל",fullName:"יוסי מזרחי",militaryId:"7789012",nationalId:"078901234",passport:"27890123",phone:"0587890123",group:"איי סטאר",hotel:"קינג דייוויד",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:"2026-03-20T10:00:00Z" },
-  { id:"t008",flightId:"flight_001",serial:8,unit:"פיקוד מרכז",rank:"אלוף",fullName:"נועה כץ",militaryId:"7890123",nationalId:"089012345",passport:"28901234",phone:"0598901234",group:"איי סטאר",hotel:"קינג דייוויד",transportBooked:false,passportCheck:"החלקה",isArchived:false,createdAt:"2026-03-20T10:00:00Z" },
-  { id:"t009",flightId:"flight_001",serial:9,unit:"8200",rank:"סגן אלוף",fullName:"אלי פרץ",militaryId:"7901234",nationalId:"090123456",passport:"29012345",phone:"0509012345",group:"מנהלת מלטים",hotel:"שרתון",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:"2026-03-20T10:00:00Z" },
-  { id:"t010",flightId:"flight_001",serial:10,unit:"מג'ן",rank:"טוראי",fullName:"תמר ניסים",militaryId:"8012345",nationalId:"001234567",passport:"30123456",phone:"0510123456",group:"נספחות",hotel:"הרודס",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:"2026-03-20T10:00:00Z" },
-  // Flight 002 - LY315 - incoming - today 19:45 (6 travelers)
-  { id:"t011",flightId:"flight_002",serial:1,unit:"81",rank:"רב סמל",fullName:"בנימין שפירא",militaryId:"8123456",nationalId:"012345679",passport:"31234567",phone:"0521234568",group:"טכנולוג׳יקל גרופ",hotel:"דן",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:"2026-03-21T10:00:00Z" },
-  { id:"t012",flightId:"flight_002",serial:2,unit:'אמ"ן',rank:"סרן",fullName:"חנה רוזן",militaryId:"8234567",nationalId:"023456780",passport:"32345678",phone:"0532345679",group:"כיפה",hotel:"פנינסולה",transportBooked:false,passportCheck:"החלקה",isArchived:false,createdAt:"2026-03-21T10:00:00Z" },
-  { id:"t013",flightId:"flight_002",serial:3,unit:"חיל האוויר",rank:"רב סרן",fullName:"גבי ויס",militaryId:"8345678",nationalId:"034567891",passport:"33456789",phone:"0543456780",group:'מפע"ם',hotel:"הילטון",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:"2026-03-21T10:00:00Z" },
-  { id:"t014",flightId:"flight_002",serial:4,unit:'מטכ"ל',rank:"אלוף משנה",fullName:"לילה עמר",militaryId:"8456789",nationalId:"045678902",passport:"34567890",phone:"0554567891",group:"איי סטאר",hotel:"קינג דייוויד",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:"2026-03-21T10:00:00Z" },
-  { id:"t015",flightId:"flight_002",serial:5,unit:"חיל הים",rank:"רב אלוף",fullName:"שלמה חדד",militaryId:"8567890",nationalId:"056789013",passport:"35678901",phone:"0565678902",group:"מנהלת מלטים",hotel:"שרתון",transportBooked:false,passportCheck:"החלקה",isArchived:false,createdAt:"2026-03-21T10:00:00Z" },
-  { id:"t016",flightId:"flight_002",serial:6,unit:"8200",rank:"סמל ראשון",fullName:"ורד גרין",militaryId:"8678901",nationalId:"067890124",passport:"36789012",phone:"0576789013",group:"נספחות",hotel:"הרודס",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:"2026-03-21T10:00:00Z" },
+  { id:"t001",flightId:"flight_001",serial:1,unit:"8200",rank:"סגן",fullName:"ישראל כהן",militaryId:"7123456",nationalId:"012345678",passport:"21234567",phone:"0521234567",group:"טכנולוג׳יקל גרופ",hotel:"Shangri-La",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:"2026-03-20T10:00:00Z" },
+  { id:"t002",flightId:"flight_001",serial:2,unit:"81",rank:"סרן",fullName:"שרה לוי",militaryId:"7234567",nationalId:"023456789",passport:"22345678",phone:"0532345678",group:"טכנולוג׳יקל גרופ",hotel:"Shangri-La",transportBooked:false,passportCheck:"החלקה",isArchived:false,createdAt:"2026-03-20T10:00:00Z" },
+  { id:"t003",flightId:"flight_001",serial:3,unit:"מג'ן",rank:"רב סמל",fullName:"דוד אברהם",militaryId:"7345678",nationalId:"034567890",passport:"23456789",phone:"0543456789",group:"כיפה",hotel:"Dusit-Thani",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:"2026-03-20T10:00:00Z" },
+  { id:"t004",flightId:"flight_001",serial:4,unit:'אמ"ן',rank:"אלוף משנה",fullName:"רחל גולן",militaryId:"7456789",nationalId:"045678901",passport:"24567890",phone:"0554567890",group:"כיפה",hotel:"Dusit-Thani",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:"2026-03-20T10:00:00Z" },
+  { id:"t005",flightId:"flight_001",serial:5,unit:"חיל האוויר",rank:"סגן אלוף",fullName:"מיכאל ברק",militaryId:"7567890",nationalId:"056789012",passport:"25678901",phone:"0565678901",group:'מפע"ם',hotel:"VOGO",transportBooked:false,passportCheck:"החלקה",isArchived:false,createdAt:"2026-03-20T10:00:00Z" },
+  { id:"t006",flightId:"flight_001",serial:6,unit:'מטכ"ל',rank:"רב אלוף",fullName:"אורית שמיר",militaryId:"7678901",nationalId:"067890123",passport:"26789012",phone:"0576789012",group:'מפע"ם',hotel:"VOGO",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:"2026-03-20T10:00:00Z" },
+  { id:"t007",flightId:"flight_001",serial:7,unit:"חיל הים",rank:"סמל",fullName:"יוסי מזרחי",militaryId:"7789012",nationalId:"078901234",passport:"27890123",phone:"0587890123",group:"איי סטאר",hotel:"W",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:"2026-03-20T10:00:00Z" },
+  { id:"t008",flightId:"flight_001",serial:8,unit:"פיקוד מרכז",rank:"אלוף",fullName:"נועה כץ",militaryId:"7890123",nationalId:"089012345",passport:"28901234",phone:"0598901234",group:"איי סטאר",hotel:"W",transportBooked:false,passportCheck:"החלקה",isArchived:false,createdAt:"2026-03-20T10:00:00Z" },
+  { id:"t009",flightId:"flight_001",serial:9,unit:"8200",rank:"סגן אלוף",fullName:"אלי פרץ",militaryId:"7901234",nationalId:"090123456",passport:"29012345",phone:"0509012345",group:"טכנולוג׳יקל גרופ",hotel:"Shangri-La",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:"2026-03-20T10:00:00Z" },
+  { id:"t010",flightId:"flight_001",serial:10,unit:"מג'ן",rank:"טוראי",fullName:"תמר ניסים",militaryId:"8012345",nationalId:"001234567",passport:"30123456",phone:"0510123456",group:"נספחות",hotel:"Dusit-Thani",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:"2026-03-20T10:00:00Z" },
+  // Flight 002 - LY315 - incoming - today 06:15 (6 travelers)
+  { id:"t011",flightId:"flight_002",serial:1,unit:"81",rank:"רב סמל",fullName:"בנימין שפירא",militaryId:"8123456",nationalId:"012345679",passport:"31234567",phone:"0521234568",group:"טכנולוג׳יקל גרופ",hotel:"Shangri-La",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:"2026-03-21T10:00:00Z" },
+  { id:"t012",flightId:"flight_002",serial:2,unit:'אמ"ן',rank:"סרן",fullName:"חנה רוזן",militaryId:"8234567",nationalId:"023456780",passport:"32345678",phone:"0532345679",group:"כיפה",hotel:"Dusit-Thani",transportBooked:false,passportCheck:"החלקה",isArchived:false,createdAt:"2026-03-21T10:00:00Z" },
+  { id:"t013",flightId:"flight_002",serial:3,unit:"חיל האוויר",rank:"רב סרן",fullName:"גבי ויס",militaryId:"8345678",nationalId:"034567891",passport:"33456789",phone:"0543456780",group:'מפע"ם',hotel:"VOGO",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:"2026-03-21T10:00:00Z" },
+  { id:"t014",flightId:"flight_002",serial:4,unit:'מטכ"ל',rank:"אלוף משנה",fullName:"לילה עמר",militaryId:"8456789",nationalId:"045678902",passport:"34567890",phone:"0554567891",group:"איי סטאר",hotel:"W",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:"2026-03-21T10:00:00Z" },
+  { id:"t015",flightId:"flight_002",serial:5,unit:"חיל הים",rank:"רב אלוף",fullName:"שלמה חדד",militaryId:"8567890",nationalId:"056789013",passport:"35678901",phone:"0565678902",group:"טכנולוג׳יקל גרופ",hotel:"Shangri-La",transportBooked:false,passportCheck:"החלקה",isArchived:false,createdAt:"2026-03-21T10:00:00Z" },
+  { id:"t016",flightId:"flight_002",serial:6,unit:"8200",rank:"סמל ראשון",fullName:"ורד גרין",militaryId:"8678901",nationalId:"067890124",passport:"36789012",phone:"0576789013",group:"נספחות",hotel:"VOGO",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:"2026-03-21T10:00:00Z" },
   // Flight 003 - W63821 - outgoing - today 08:00 (3 travelers)
-  { id:"t017",flightId:"flight_003",serial:1,unit:"81",rank:"סגן",fullName:"אמיר דוד",militaryId:"9001234",nationalId:"090012345",passport:"40012345",phone:"0520012345",group:"כיפה",hotel:"פנינסולה",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:"2026-03-15T10:00:00Z" },
-  { id:"t018",flightId:"flight_003",serial:2,unit:"מג'ן",rank:"סרן",fullName:"מיה פישר",militaryId:"9012345",nationalId:"090123456",passport:"40123456",phone:"0530123456",group:"איי סטאר",hotel:"הילטון",transportBooked:false,passportCheck:"החלקה",isArchived:false,createdAt:"2026-03-15T10:00:00Z" },
-  { id:"t020",flightId:"flight_003",serial:3,unit:"8200",rank:"רב סרן",fullName:"עדן כהן",militaryId:"9112345",nationalId:"091123456",passport:"41123456",phone:"0541123456",group:"טכנולוג׳יקל גרופ",hotel:"דן",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:"2026-03-15T10:00:00Z" },
+  { id:"t017",flightId:"flight_003",serial:1,unit:"81",rank:"סגן",fullName:"אמיר דוד",militaryId:"9001234",nationalId:"090012345",passport:"40012345",phone:"0520012345",group:"כיפה",hotel:"Dusit-Thani",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:"2026-03-15T10:00:00Z" },
+  { id:"t018",flightId:"flight_003",serial:2,unit:"מג'ן",rank:"סרן",fullName:"מיה פישר",militaryId:"9012345",nationalId:"090123456",passport:"40123456",phone:"0530123456",group:"איי סטאר",hotel:"W",transportBooked:false,passportCheck:"החלקה",isArchived:false,createdAt:"2026-03-15T10:00:00Z" },
+  { id:"t020",flightId:"flight_003",serial:3,unit:"8200",rank:"רב סרן",fullName:"עדן כהן",militaryId:"9112345",nationalId:"091123456",passport:"41123456",phone:"0541123456",group:"טכנולוג׳יקל גרופ",hotel:"Shangri-La",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:"2026-03-15T10:00:00Z" },
   // Flight 004 - EL478 - future 2026-03-27 (1 traveler)
-  { id:"t021",flightId:"flight_004",serial:1,unit:'אמ"ן',rank:"סגן משנה",fullName:"דנה אלון",militaryId:"9212345",nationalId:"092123456",passport:"42123456",phone:"0552123456",group:"מנהלת מלטים",hotel:"שרתון",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:"2026-03-22T10:00:00Z" },
+  { id:"t021",flightId:"flight_004",serial:1,unit:'אמ"ן',rank:"סגן משנה",fullName:"דנה אלון",militaryId:"9212345",nationalId:"092123456",passport:"42123456",phone:"0552123456",group:"טכנולוג׳יקל גרופ",hotel:"Shangri-La",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:"2026-03-22T10:00:00Z" },
   // Flight 006 - EK203 - past incoming 2026-03-22 (arrived, still in country)
-  { id:"t023",flightId:"flight_006",serial:1,unit:"8200",rank:"סגן אלוף",fullName:"אריאל מור",militaryId:"9401234",nationalId:"094012345",passport:"44012345",phone:"0540012345",group:"טכנולוג׳יקל גרופ",hotel:"דן",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:"2026-03-20T10:00:00Z" },
-  { id:"t024",flightId:"flight_006",serial:2,unit:'אמ"ן',rank:"רב סרן",fullName:"ליאור אשכנזי",militaryId:"9412345",nationalId:"094123456",passport:"44123456",phone:"0541234568",group:"כיפה",hotel:"הילטון",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:"2026-03-20T10:00:00Z" },
-  { id:"t025",flightId:"flight_006",serial:3,unit:"חיל האוויר",rank:"סרן",fullName:"מעיין חלבי",militaryId:"9423456",nationalId:"094234567",passport:"44234567",phone:"0542345678",group:'מפע"ם',hotel:"פנינסולה",transportBooked:false,passportCheck:"V",isArchived:false,createdAt:"2026-03-20T10:00:00Z" },
-  { id:"t026",flightId:"flight_006",serial:4,unit:"חיל הים",rank:"סגן",fullName:"תום לביא",militaryId:"9434567",nationalId:"094345678",passport:"44345678",phone:"0543456780",group:"איי סטאר",hotel:"קינג דייוויד",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:"2026-03-20T10:00:00Z" },
-  { id:"t027",flightId:"flight_006",serial:5,unit:'מטכ"ל',rank:"אלוף משנה",fullName:"נדב גלעד",militaryId:"9445678",nationalId:"094456789",passport:"44456789",phone:"0544567890",group:"מנהלת מלטים",hotel:"שרתון",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:"2026-03-20T10:00:00Z" },
-  { id:"t028",flightId:"flight_006",serial:6,unit:"פיקוד מרכז",rank:"סמל ראשון",fullName:"רותם ששון",militaryId:"9456789",nationalId:"094567890",passport:"44567890",phone:"0545678901",group:"נספחות",hotel:"הרודס",transportBooked:false,passportCheck:"החלקה",isArchived:false,createdAt:"2026-03-20T10:00:00Z" },
+  { id:"t023",flightId:"flight_006",serial:1,unit:"8200",rank:"סגן אלוף",fullName:"אריאל מור",militaryId:"9401234",nationalId:"094012345",passport:"44012345",phone:"0540012345",group:"טכנולוג׳יקל גרופ",hotel:"Shangri-La",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:"2026-03-20T10:00:00Z" },
+  { id:"t024",flightId:"flight_006",serial:2,unit:'אמ"ן',rank:"רב סרן",fullName:"ליאור אשכנזי",militaryId:"9412345",nationalId:"094123456",passport:"44123456",phone:"0541234568",group:"כיפה",hotel:"Dusit-Thani",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:"2026-03-20T10:00:00Z" },
+  { id:"t025",flightId:"flight_006",serial:3,unit:"חיל האוויר",rank:"סרן",fullName:"מעיין חלבי",militaryId:"9423456",nationalId:"094234567",passport:"44234567",phone:"0542345678",group:'מפע"ם',hotel:"VOGO",transportBooked:false,passportCheck:"V",isArchived:false,createdAt:"2026-03-20T10:00:00Z" },
+  { id:"t026",flightId:"flight_006",serial:4,unit:"חיל הים",rank:"סגן",fullName:"תום לביא",militaryId:"9434567",nationalId:"094345678",passport:"44345678",phone:"0543456780",group:"איי סטאר",hotel:"W",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:"2026-03-20T10:00:00Z" },
+  { id:"t027",flightId:"flight_006",serial:5,unit:'מטכ"ל',rank:"אלוף משנה",fullName:"נדב גלעד",militaryId:"9445678",nationalId:"094456789",passport:"44456789",phone:"0544567890",group:"טכנולוג׳יקל גרופ",hotel:"Shangri-La",transportBooked:true,passportCheck:"V",isArchived:false,createdAt:"2026-03-20T10:00:00Z" },
+  { id:"t028",flightId:"flight_006",serial:6,unit:"פיקוד מרכז",rank:"סמל ראשון",fullName:"רותם ששון",militaryId:"9456789",nationalId:"094567890",passport:"44567890",phone:"0545678901",group:"נספחות",hotel:"Dusit-Thani",transportBooked:false,passportCheck:"החלקה",isArchived:false,createdAt:"2026-03-20T10:00:00Z" },
   // Archived travelers
-  { id:"t019",flightId:"flight_001",serial:11,unit:'אמ"ן',rank:"סמל",fullName:"ניר שלום",militaryId:"9123456",nationalId:"091234567",passport:"41234567",phone:"0541234567",group:"כיפה",hotel:"פנינסולה",transportBooked:false,passportCheck:"V",isArchived:true,createdAt:"2026-03-20T10:00:00Z" },
-  { id:"t022",flightId:"flight_002",serial:7,unit:"81",rank:"סרן",fullName:"רון ביטון",militaryId:"9312345",nationalId:"093123456",passport:"43123456",phone:"0563123456",group:"נספחות",hotel:"הרודס",transportBooked:true,passportCheck:"החלקה",isArchived:true,createdAt:"2026-03-21T10:00:00Z" }
+  { id:"t019",flightId:"flight_001",serial:11,unit:'אמ"ן',rank:"סמל",fullName:"ניר שלום",militaryId:"9123456",nationalId:"091234567",passport:"41234567",phone:"0541234567",group:"כיפה",hotel:"Dusit-Thani",transportBooked:false,passportCheck:"V",isArchived:true,createdAt:"2026-03-20T10:00:00Z" },
+  { id:"t022",flightId:"flight_002",serial:7,unit:"81",rank:"סרן",fullName:"רון ביטון",militaryId:"9312345",nationalId:"093123456",passport:"43123456",phone:"0563123456",group:"נספחות",hotel:"VOGO",transportBooked:true,passportCheck:"החלקה",isArchived:true,createdAt:"2026-03-21T10:00:00Z" }
 ];
 
 // ━━━━━━━━━━━━━━━━━━━━ STORAGE ━━━━━━━━━━━━━━━━━━━━
@@ -171,15 +177,19 @@ function getFlights() {
 function saveFlights(f) { localStorage.setItem(FLIGHTS_KEY, JSON.stringify(f)); }
 function addFlightToStorage(flight) {
   const flights = getFlights();
-  const nf = { ...flight, id: generateId() };
+  const nf = { ...flight, id: generateId(), createdAt: new Date().toISOString() };
   saveFlights([...flights, nf]);
+  queueSync('addFlight', nf);
   return nf;
 }
 function deleteFlightFromStorage(id) {
   const flights = getFlights();
   saveFlights(flights.filter(f => f.id !== id));
   const travelers = getTravelers();
+  const affected = travelers.filter(t => t.flightId === id && !t.isArchived);
   saveTravelers(travelers.map(t => t.flightId === id ? { ...t, isArchived: true } : t));
+  queueSync('deleteFlight', null, id);
+  affected.forEach(t => queueSync('updateTraveler', { isArchived: true }, t.id));
 }
 
 function getTravelers() {
@@ -192,23 +202,28 @@ function addTravelerToStorage(traveler) {
   const serial = flightTravelers.length + 1;
   const nt = { ...traveler, id: generateId(), serial, isArchived: false, createdAt: new Date().toISOString() };
   saveTravelers([...travelers, nt]);
+  queueSync('addTraveler', nt);
   return nt;
 }
 function updateTravelerInStorage(id, updates) {
   const travelers = getTravelers();
   saveTravelers(travelers.map(t => t.id === id ? { ...t, ...updates } : t));
+  queueSync('updateTraveler', updates, id);
 }
 function deleteTravelerFromStorage(id) {
   const travelers = getTravelers();
   saveTravelers(travelers.map(t => t.id === id ? { ...t, isArchived: true } : t));
+  queueSync('deleteTraveler', null, id);
 }
 function restoreTravelerInStorage(id) {
   const travelers = getTravelers();
   saveTravelers(travelers.map(t => t.id === id ? { ...t, isArchived: false } : t));
+  queueSync('restoreTraveler', null, id);
 }
 function permanentDeleteTraveler(id) {
   const travelers = getTravelers();
   saveTravelers(travelers.filter(t => t.id !== id));
+  queueSync('permanentDeleteTraveler', null, id);
 }
 
 function getHotelRatings() {
@@ -221,6 +236,20 @@ function setHotelRatingInStorage(hotelName, rating) {
   const ratings = getHotelRatings();
   ratings[hotelName] = Math.min(5, Math.max(1, rating));
   localStorage.setItem(HOTEL_RATINGS_KEY, JSON.stringify(ratings));
+  queueSync('setSetting', { key: 'hotel_rating_' + hotelName, value: String(rating) });
+}
+
+function getGroupPocs() {
+  try {
+    const d = localStorage.getItem(GROUP_POCS_KEY);
+    return d ? { ...DEFAULT_GROUP_POCS, ...JSON.parse(d) } : { ...DEFAULT_GROUP_POCS };
+  } catch { return { ...DEFAULT_GROUP_POCS }; }
+}
+function setGroupPocInStorage(group, pocName) {
+  const pocs = getGroupPocs();
+  pocs[group] = pocName;
+  localStorage.setItem(GROUP_POCS_KEY, JSON.stringify(pocs));
+  queueSync('setSetting', { key: 'poc_' + group, value: pocName });
 }
 
 function getTodaysFlights() {
@@ -279,6 +308,381 @@ function getPeopleInCountry() {
   }
 
   return inCountry.sort((a, b) => a.fullName.localeCompare(b.fullName, 'he'));
+}
+
+// ━━━━━━━━━━━━━━━━━━━━ GOOGLE SHEETS SYNC ━━━━━━━━━━━━━━━━━━━━
+
+// Paste your deployed Google Apps Script Web App URL here:
+const SHEETS_API_URL = '';
+const SYNC_KEY = 'flightmanager_sync_meta';
+const SYNC_QUEUE_KEY = 'flightmanager_sync_queue';
+
+// Sync status: 'idle' | 'syncing' | 'synced' | 'error' | 'offline'
+let _syncStatus = 'idle';
+let _syncListeners = [];
+let _syncTimer = null;
+let _pullInterval = null;
+
+function getSyncEnabled() { return SHEETS_API_URL.length > 0; }
+
+function getSyncStatus() { return _syncStatus; }
+function onSyncStatusChange(fn) { _syncListeners.push(fn); return () => { _syncListeners = _syncListeners.filter(f => f !== fn); }; }
+function _setSyncStatus(s) { _syncStatus = s; _syncListeners.forEach(fn => fn(s)); }
+
+function getSyncMeta() {
+  try { const d = localStorage.getItem(SYNC_KEY); return d ? JSON.parse(d) : {}; } catch { return {}; }
+}
+function setSyncMeta(updates) {
+  const meta = { ...getSyncMeta(), ...updates };
+  localStorage.setItem(SYNC_KEY, JSON.stringify(meta));
+}
+
+// ── Sync Queue: track changes to push ──
+
+function getSyncQueue() {
+  try { const d = localStorage.getItem(SYNC_QUEUE_KEY); return d ? JSON.parse(d) : []; } catch { return []; }
+}
+function saveSyncQueue(q) { localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(q)); }
+
+function queueSync(action, data, id) {
+  if (!getSyncEnabled()) return;
+  const queue = getSyncQueue();
+  queue.push({ action, data: data || null, id: id || null, timestamp: Date.now() });
+  saveSyncQueue(queue);
+
+  // Debounce flush: 3 seconds after last change
+  clearTimeout(_syncTimer);
+  _syncTimer = setTimeout(flushSyncQueue, 3000);
+}
+
+async function flushSyncQueue() {
+  if (!getSyncEnabled()) return;
+  const queue = getSyncQueue();
+  if (queue.length === 0) { _setSyncStatus('synced'); return; }
+
+  _setSyncStatus('syncing');
+  const batch = [...queue];
+  saveSyncQueue([]); // Optimistically clear
+
+  try {
+    const res = await fetch(SHEETS_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'batch', operations: batch })
+    });
+    const result = await res.json();
+    if (result.success) {
+      setSyncMeta({ lastPush: new Date().toISOString() });
+      _setSyncStatus('synced');
+    } else {
+      throw new Error(result.error || 'Batch failed');
+    }
+  } catch (err) {
+    console.error('Sync push error:', err);
+    // Re-queue failed items
+    const currentQueue = getSyncQueue();
+    saveSyncQueue([...batch, ...currentQueue]);
+    _setSyncStatus('error');
+  }
+}
+
+// ── Pull from Sheets ──
+
+async function pullFromSheets() {
+  if (!getSyncEnabled()) return null;
+  _setSyncStatus('syncing');
+
+  try {
+    const res = await fetch(SHEETS_API_URL + '?action=sync');
+    const result = await res.json();
+
+    if (!result.success) throw new Error(result.error || 'Pull failed');
+
+    const { flights, travelers, settings, syncedAt } = result.data;
+
+    // Merge flights — sheet data wins if we have no local pending changes
+    if (flights && flights.length > 0) {
+      const sheetFlights = flights.filter(f => !f.deleted);
+      localStorage.setItem(FLIGHTS_KEY, JSON.stringify(sheetFlights));
+    }
+
+    // Merge travelers
+    if (travelers && travelers.length > 0) {
+      const sheetTravelers = travelers.map(t => ({
+        ...t,
+        transportBooked: t.transportBooked === true || t.transportBooked === 'TRUE',
+        isArchived: t.isArchived === true || t.isArchived === 'TRUE',
+        serial: typeof t.serial === 'string' ? parseInt(t.serial) || 0 : (t.serial || 0)
+      }));
+      localStorage.setItem(TRAVELERS_KEY, JSON.stringify(sheetTravelers));
+    }
+
+    // Merge settings
+    if (settings && settings.length > 0) {
+      const hotelRatings = { ...DEFAULT_HOTEL_RATINGS };
+      const groupPocs = { ...DEFAULT_GROUP_POCS };
+
+      settings.forEach(s => {
+        if (s.key && s.key.startsWith('hotel_rating_')) {
+          const hotel = s.key.replace('hotel_rating_', '');
+          hotelRatings[hotel] = parseInt(s.value) || 0;
+        } else if (s.key && s.key.startsWith('poc_')) {
+          const group = s.key.replace('poc_', '');
+          groupPocs[group] = s.value || '';
+        }
+      });
+
+      localStorage.setItem(HOTEL_RATINGS_KEY, JSON.stringify(hotelRatings));
+      localStorage.setItem(GROUP_POCS_KEY, JSON.stringify(groupPocs));
+    }
+
+    setSyncMeta({ lastPull: syncedAt });
+    _setSyncStatus('synced');
+    return result.data;
+  } catch (err) {
+    console.error('Sync pull error:', err);
+    _setSyncStatus('error');
+    return null;
+  }
+}
+
+// ── Full push (upload all local data to Sheets) ──
+
+async function pushAllToSheets() {
+  if (!getSyncEnabled()) return false;
+  _setSyncStatus('syncing');
+
+  try {
+    const allFlights = getFlights();
+    const allTravelers = getTravelers();
+    const hotelRatings = getHotelRatings();
+    const groupPocs = getGroupPocs();
+
+    const res = await fetch(SHEETS_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        action: 'fullPush',
+        data: {
+          flights: allFlights,
+          travelers: allTravelers,
+          settings: { hotelRatings, groupPocs }
+        }
+      })
+    });
+
+    const result = await res.json();
+    if (result.success) {
+      setSyncMeta({ lastFullPush: new Date().toISOString() });
+      saveSyncQueue([]); // Clear pending queue
+      _setSyncStatus('synced');
+      return true;
+    } else {
+      throw new Error(result.error || 'Full push failed');
+    }
+  } catch (err) {
+    console.error('Full push error:', err);
+    _setSyncStatus('error');
+    return false;
+  }
+}
+
+// ── Start periodic sync ──
+
+function startSyncInterval() {
+  if (!getSyncEnabled()) return;
+  // Pull on load
+  pullFromSheets();
+  // Pull every 60 seconds
+  _pullInterval = setInterval(() => {
+    const queue = getSyncQueue();
+    if (queue.length > 0) flushSyncQueue();
+    else pullFromSheets();
+  }, 60000);
+}
+
+function stopSyncInterval() {
+  if (_pullInterval) { clearInterval(_pullInterval); _pullInterval = null; }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━ SYNC UI COMPONENTS ━━━━━━━━━━━━━━━━━━━━
+
+function SyncStatusDot() {
+  const [status, setStatus] = useState(getSyncStatus());
+  const enabled = getSyncEnabled();
+
+  useEffect(() => {
+    const unsub = onSyncStatusChange(setStatus);
+    return unsub;
+  }, []);
+
+  if (!enabled) return null;
+
+  const colors = {
+    idle: 'bg-gray-400',
+    syncing: 'bg-amber-400 animate-pulse',
+    synced: 'bg-green-400',
+    error: 'bg-red-400',
+    offline: 'bg-gray-500'
+  };
+
+  const labels = {
+    idle: 'מחכה לסנכרון',
+    syncing: 'מסנכרן...',
+    synced: 'מסונכרן',
+    error: 'שגיאת סנכרון',
+    offline: 'לא מחובר'
+  };
+
+  return (
+    <div className="relative group">
+      <div className={`w-2.5 h-2.5 rounded-full ${colors[status] || colors.idle}`} />
+      <div className="absolute bottom-full right-1/2 translate-x-1/2 mb-2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+        {labels[status] || status}
+      </div>
+    </div>
+  );
+}
+
+function SyncPanel({ onClose }) {
+  const [status, setStatus] = useState(getSyncStatus());
+  const [syncing, setSyncing] = useState(false);
+  const [pushingAll, setPushingAll] = useState(false);
+  const [lastPull, setLastPull] = useState('');
+  const [lastPush, setLastPush] = useState('');
+  const [queueLen, setQueueLen] = useState(0);
+  const enabled = getSyncEnabled();
+
+  useEffect(() => {
+    const unsub = onSyncStatusChange(setStatus);
+    const meta = getSyncMeta();
+    setLastPull(meta.lastPull || '');
+    setLastPush(meta.lastPush || meta.lastFullPush || '');
+    setQueueLen(getSyncQueue().length);
+    const iv = setInterval(() => setQueueLen(getSyncQueue().length), 2000);
+    return () => { unsub(); clearInterval(iv); };
+  }, []);
+
+  const handlePull = async () => {
+    setSyncing(true);
+    await pullFromSheets();
+    const meta = getSyncMeta();
+    setLastPull(meta.lastPull || '');
+    setSyncing(false);
+    showToast('נתונים עודכנו מ-Google Sheets');
+  };
+
+  const handleFullPush = async () => {
+    setPushingAll(true);
+    const ok = await pushAllToSheets();
+    const meta = getSyncMeta();
+    setLastPush(meta.lastFullPush || '');
+    setPushingAll(false);
+    if (ok) showToast('כל הנתונים הועלו ל-Google Sheets');
+    else showToast('שגיאה בהעלאת נתונים');
+  };
+
+  const handleFlush = async () => {
+    setSyncing(true);
+    await flushSyncQueue();
+    setQueueLen(getSyncQueue().length);
+    setSyncing(false);
+  };
+
+  const formatTime = (iso) => {
+    if (!iso) return 'לא בוצע';
+    const d = new Date(iso);
+    return d.toLocaleString('he-IL', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
+  };
+
+  if (!enabled) return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-2xl p-6 max-w-md w-full mx-4" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <i className="bi bi-cloud text-indigo-500"></i> סנכרון Google Sheets
+          </h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><i className="bi bi-x-lg"></i></button>
+        </div>
+        <div className="text-center py-8 text-gray-500">
+          <i className="bi bi-cloud-slash text-4xl block mb-3 opacity-30"></i>
+          <p className="font-medium mb-2">סנכרון לא מוגדר</p>
+          <p className="text-sm">יש להגדיר את כתובת ה-API בקובץ index.html</p>
+          <code className="block mt-3 bg-gray-100 dark:bg-gray-800 px-3 py-2 rounded-lg text-xs text-left direction-ltr" dir="ltr">
+            const SHEETS_API_URL = 'https://script.google.com/...'
+          </code>
+        </div>
+      </div>
+    </div>
+  );
+
+  const statusColors = { idle: 'text-gray-400', syncing: 'text-amber-500', synced: 'text-green-500', error: 'text-red-500' };
+  const statusLabels = { idle: 'מחכה', syncing: 'מסנכרן...', synced: 'מסונכרן', error: 'שגיאה' };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-2xl p-6 max-w-md w-full mx-4" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <i className="bi bi-cloud-check text-indigo-500"></i> סנכרון Google Sheets
+          </h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><i className="bi bi-x-lg"></i></button>
+        </div>
+
+        {/* Status */}
+        <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">מצב סנכרון</span>
+            <span className={`text-sm font-semibold ${statusColors[status] || ''}`}>
+              {status === 'syncing' && <i className="bi bi-arrow-repeat spin ml-1"></i>}
+              {statusLabels[status] || status}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-3 text-xs">
+            <div>
+              <span className="text-gray-400">משיכה אחרונה:</span>
+              <div className="font-medium text-gray-700 dark:text-gray-300">{formatTime(lastPull)}</div>
+            </div>
+            <div>
+              <span className="text-gray-400">דחיפה אחרונה:</span>
+              <div className="font-medium text-gray-700 dark:text-gray-300">{formatTime(lastPush)}</div>
+            </div>
+          </div>
+          {queueLen > 0 && (
+            <div className="mt-2 text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
+              <i className="bi bi-clock-history"></i> {queueLen} שינויים ממתינים לסנכרון
+            </div>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="space-y-2">
+          <button onClick={handlePull} disabled={syncing}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-sm font-medium transition-all">
+            <i className={`bi ${syncing ? 'bi-arrow-repeat spin' : 'bi-cloud-download'}`}></i>
+            {syncing ? 'מסנכרן...' : 'משוך נתונים מ-Sheets'}
+          </button>
+
+          {queueLen > 0 && (
+            <button onClick={handleFlush} disabled={syncing}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white rounded-xl text-sm font-medium transition-all">
+              <i className="bi bi-cloud-upload"></i> דחוף {queueLen} שינויים ל-Sheets
+            </button>
+          )}
+
+          <button onClick={handleFullPush} disabled={pushingAll}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium transition-all">
+            <i className={`bi ${pushingAll ? 'bi-arrow-repeat spin' : 'bi-cloud-arrow-up'}`}></i>
+            {pushingAll ? 'מעלה...' : 'העלה הכל ל-Sheets (דריסה)'}
+          </button>
+        </div>
+
+        <p className="text-[10px] text-gray-400 dark:text-gray-600 mt-4 text-center">
+          הנתונים נשמרים גם ב-localStorage וגם ב-Google Sheets. שינויים מסונכרנים אוטומטית.
+        </p>
+      </div>
+    </div>
+  );
 }
 
 // ━━━━━━━━━━━━━━━━━━━━ UTILS ━━━━━━━━━━━━━━━━━━━━
@@ -458,6 +862,65 @@ function EditableStarRating({ hotel, ratings, onRate }) {
   );
 }
 
+function EditableGroupPocs() {
+  const [pocs, setPocs] = useState(() => getGroupPocs());
+  const [editing, setEditing] = useState(null);
+  const [tempVal, setTempVal] = useState('');
+
+  const startEdit = (group) => {
+    setEditing(group);
+    setTempVal(pocs[group] || '');
+  };
+
+  const save = (group) => {
+    setGroupPocInStorage(group, tempVal);
+    setPocs(prev => ({ ...prev, [group]: tempVal }));
+    setEditing(null);
+    showToast(`איש קשר ל${group} עודכן`);
+  };
+
+  return (
+    <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-4 mb-6">
+      <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+        <i className="bi bi-person-badge text-indigo-500"></i> איש קשר (POC) לקבוצות
+      </h3>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        {GROUPS.map(group => {
+          const colors = GROUP_COLORS[group] || {};
+          const isEditing = editing === group;
+          return (
+            <div key={group} className={`rounded-xl border px-3 py-2.5 ${colors.bg} ${colors.border}`}>
+              <div className={`text-xs font-semibold mb-1.5 ${colors.text}`}>{group}</div>
+              {isEditing ? (
+                <div className="flex items-center gap-1">
+                  <input autoFocus value={tempVal} onChange={e => setTempVal(e.target.value)}
+                    onBlur={() => save(group)}
+                    onKeyDown={e => { if (e.key === 'Enter') save(group); if (e.key === 'Escape') setEditing(null); }}
+                    className="w-full px-2 py-1 text-xs border-2 border-indigo-500 rounded-lg bg-white dark:bg-gray-800 outline-none"
+                    placeholder="שם איש קשר..." />
+                </div>
+              ) : (
+                <button onClick={() => startEdit(group)}
+                  className={`flex items-center gap-1 text-xs w-full text-right group ${colors.text} opacity-70 hover:opacity-100 transition-opacity`}>
+                  {pocs[group] ? (
+                    <>
+                      <i className="bi bi-person-badge text-[10px]"></i>
+                      <span className="truncate">{pocs[group]}</span>
+                      <i className="bi bi-pencil text-[9px] opacity-0 group-hover:opacity-60 mr-auto"></i>
+                    </>
+                  ) : (
+                    <span className="italic opacity-50">+ הוסף איש קשר</span>
+                  )}
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function PassportSwitch({ value, onChange }) {
   const isV = value === 'V';
   return (
@@ -520,16 +983,23 @@ function GroupDropdown({ value, onChange }) {
 
 // ━━━━━━━━━━━━━━━━━━━━ DASHBOARD PAGE ━━━━━━━━━━━━━━━━━━━━
 
-function GroupSummaryCards({ allTravelers }) {
+function GroupSummaryCards({ allTravelers, pocs }) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-8">
       {GROUPS.map(group => {
         const colors = GROUP_COLORS[group] || {};
         const count = allTravelers.filter(t => t.group === group).length;
+        const poc = pocs ? pocs[group] : '';
         return (
           <div key={group} className={`rounded-xl border px-4 py-3 shadow-sm ${colors.bg} ${colors.border}`}>
             <div className={`text-3xl font-extrabold ${colors.text}`}>{count}</div>
             <div className={`text-xs font-semibold mt-1 ${colors.text} opacity-80`}>{group}</div>
+            {poc && (
+              <div className={`text-[10px] mt-1.5 flex items-center gap-1 ${colors.text} opacity-60`}>
+                <i className="bi bi-person-badge text-[9px]"></i>
+                <span className="truncate">{poc}</span>
+              </div>
+            )}
           </div>
         );
       })}
@@ -874,6 +1344,7 @@ function DashboardPage() {
   const [travelersMap, setTravelersMap] = useState({});
   const [allTodayTravelers, setAllTodayTravelers] = useState([]);
   const [hotelRatings, setHotelRatings] = useState({});
+  const [groupPocs, setGroupPocs] = useState({});
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedHotel, setSelectedHotel] = useState(null);
@@ -891,6 +1362,7 @@ function DashboardPage() {
     setTravelersMap(map);
     setAllTodayTravelers(allT);
     setHotelRatings(getHotelRatings());
+    setGroupPocs(getGroupPocs());
     setLoading(false);
   }, [refreshKey]);
 
@@ -923,7 +1395,7 @@ function DashboardPage() {
         </button>
       </div>
 
-      {allTodayTravelers.length > 0 && <GroupSummaryCards allTravelers={allTodayTravelers} />}
+      {allTodayTravelers.length > 0 && <GroupSummaryCards allTravelers={allTodayTravelers} pocs={groupPocs} />}
 
       {flights.length === 0 && (
         <div className="text-center py-24 text-gray-400 dark:text-gray-600">
@@ -1080,7 +1552,7 @@ function AddPage({ onNavigate }) {
                 {GROUPS.map(g => <option key={g} value={g}>{g}</option>)}
               </select>
             </Field>
-            <Field label="מלון" name="hotel"><Input name="hotel" placeholder="דן, הילטון..." /></Field>
+            <Field label="מלון" name="hotel"><Input name="hotel" placeholder="Shangri-La, W..." /></Field>
             <div className="sm:col-span-2 flex flex-wrap gap-6 items-center">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" checked={form.transportBooked} onChange={e => set('transportBooked', e.target.checked)} className="w-4 h-4 accent-indigo-600 rounded" />
@@ -1301,6 +1773,10 @@ function EditPage() {
               </div>
             </div>
           )}
+
+          {/* Group POCs - Editable */}
+          <EditableGroupPocs />
+
 
           {/* Filters */}
           <div className="flex flex-wrap items-center gap-3 mb-3">
@@ -1683,6 +2159,20 @@ function GuidePage() {
           דף זה הינו לקריאה בלבד. רק טיסות שכבר התרחשו (תאריך ושעה בעבר) נלקחות בחשבון.
         </p>
       </Section>
+
+      <Section icon="bi-cloud-arrow-up" title="סנכרון Google Sheets" color="text-emerald-700 dark:text-emerald-300">
+        <p>המערכת תומכת בסנכרון דו-כיווני עם <strong>Google Sheets</strong> כגיבוי ענן ושיתוף נתונים:</p>
+        <Step n="1">צרו גיליון Google חדש.</Step>
+        <Step n="2">פתחו <Code>Extensions {'>'} Apps Script</Code> והדביקו את קוד השרת.</Step>
+        <Step n="3">הריצו את פונקציית <Code>setupSheets</Code> ליצירת הטבלאות.</Step>
+        <Step n="4">פרסו כ-Web App והעתיקו את כתובת ה-URL.</Step>
+        <Step n="5">הדביקו את הכתובת ב-<Code>SHEETS_API_URL</Code> בקובץ האפליקציה.</Step>
+        <p><strong>איך זה עובד:</strong></p>
+        <Step n="1"><strong>localStorage</strong> נשאר המאגר המהיר {'\u2014'} שינויים נשמרים מיידית.</Step>
+        <Step n="2">שינויים נדחפים אוטומטית ל-Google Sheets כל מספר שניות.</Step>
+        <Step n="3">בטעינת דף, המערכת מושכת נתונים מ-Sheets ומעדכנת.</Step>
+        <p>לחצו על כפתור הענן (<i className="bi bi-cloud-arrow-up text-xs"></i>) בסרגל הצד לניהול הסנכרון.</p>
+      </Section>
     </div>
   );
 }
@@ -1779,14 +2269,21 @@ function StatusPage() {
         <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3 flex items-center gap-2">
           <i className="bi bi-people text-indigo-500"></i> פירוט לפי קבוצה
         </h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           {GROUPS.map(group => {
             const colors = GROUP_COLORS[group] || {};
             const count = groupBreakdown[group] || 0;
+            const poc = getGroupPocs()[group] || '';
             return (
               <div key={group} className={`rounded-xl border px-4 py-3 shadow-sm transition-all ${count > 0 ? colors.bg + ' ' + colors.border : 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 opacity-50'}`}>
                 <div className={`text-3xl font-extrabold ${count > 0 ? colors.text : 'text-gray-300 dark:text-gray-600'}`}>{count}</div>
                 <div className={`text-xs font-semibold mt-1 ${count > 0 ? colors.text + ' opacity-80' : 'text-gray-400 dark:text-gray-600'}`}>{group}</div>
+                {poc && count > 0 && (
+                  <div className={`text-[10px] mt-1.5 flex items-center gap-1 ${colors.text} opacity-60`}>
+                    <i className="bi bi-person-badge text-[9px]"></i>
+                    <span className="truncate">{poc}</span>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -1923,7 +2420,7 @@ function StatusPage() {
 
 // ━━━━━━━━━━━━━━━━━━━━ SIDEBAR ━━━━━━━━━━━━━━━━━━━━
 
-function Sidebar({ page, onNavigate, dark, onToggleDark }) {
+function Sidebar({ page, onNavigate, dark, onToggleDark, onOpenSync }) {
   const [hovered, setHovered] = useState(null);
   const items = [
     { id: 'dashboard', icon: 'bi-grid-3x3-gap-fill', label: 'לוח בקרה' },
@@ -1956,6 +2453,20 @@ function Sidebar({ page, onNavigate, dark, onToggleDark }) {
           </div>
         ))}
       </nav>
+      {/* Sync button */}
+      <div className="relative mb-2" onMouseEnter={() => setHovered('sync')} onMouseLeave={() => setHovered(null)}>
+        <button onClick={onOpenSync}
+          className="w-10 h-10 rounded-xl text-gray-400 hover:bg-gray-700 hover:text-white flex items-center justify-center transition-all relative">
+          <i className="bi bi-cloud-arrow-up"></i>
+          <div className="absolute top-1 left-1"><SyncStatusDot /></div>
+        </button>
+        {hovered === 'sync' && (
+          <div className="absolute right-14 top-1/2 -translate-y-1/2 bg-gray-800 text-white text-sm px-3 py-1.5 rounded-lg whitespace-nowrap shadow-lg pointer-events-none z-50 border border-gray-700">
+            סנכרון Google Sheets
+            <div className="absolute top-1/2 -translate-y-1/2 -right-1.5 w-0 h-0 border-t-4 border-b-4 border-l-4 border-transparent border-l-gray-800" />
+          </div>
+        )}
+      </div>
       <button onClick={onToggleDark} className="w-10 h-10 rounded-xl text-gray-400 hover:bg-gray-700 hover:text-white flex items-center justify-center transition-all"
         title={dark ? 'מצב בהיר' : 'מצב כהה'}>
         <i className={`bi ${dark ? 'bi-sun-fill' : 'bi-moon-fill'}`}></i>
@@ -1970,6 +2481,7 @@ function App() {
   const [page, setPage] = useState('dashboard');
   const [dark, setDark] = useState(false);
   const [ready, setReady] = useState(false);
+  const [showSyncPanel, setShowSyncPanel] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem(DARK_KEY);
@@ -1977,6 +2489,9 @@ function App() {
       setDark(true); document.documentElement.classList.add('dark');
     }
     setReady(true);
+    // Start sync if configured
+    startSyncInterval();
+    return () => stopSyncInterval();
   }, []);
 
   const toggleDark = () => {
@@ -1994,7 +2509,7 @@ function App() {
 
   return (
     <div className="flex min-h-screen">
-      <Sidebar page={page} onNavigate={setPage} dark={dark} onToggleDark={toggleDark} />
+      <Sidebar page={page} onNavigate={setPage} dark={dark} onToggleDark={toggleDark} onOpenSync={() => setShowSyncPanel(true)} />
       <main className="flex-1 mr-16 overflow-x-hidden min-h-screen">
         {page === 'dashboard' && <DashboardPage />}
         {page === 'status' && <StatusPage />}
@@ -2004,6 +2519,7 @@ function App() {
         {page === 'guide' && <GuidePage />}
       </main>
       <ToastContainer />
+      {showSyncPanel && <SyncPanel onClose={() => setShowSyncPanel(false)} />}
     </div>
   );
 }
